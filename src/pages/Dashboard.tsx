@@ -3,18 +3,19 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { CompletionDonut, TrendChart } from "../components/charts";
 import { NeuralNetworkCanvas, type NetState } from "../components/NeuralNetworkCanvas";
-import { Badge, KpiCard, Panel, QueryState, Skeleton } from "../components/ui";
+import { Badge, Panel, QueryState, Skeleton } from "../components/ui";
 import {
-  ActivityFeed, RecommendationList, RegionMap, SkillHeatmap, TaskManagerCompact, type ActivityItem, type SkillRow,
+  ActivityFeed, KpiStrip, PriorityList, RegionMap, SkillHeatmap, TaskManagerCompact, type ActivityItem, type SkillRow,
+  type StripItem,
 } from "../components/widgets";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { fmtPercent, timeAgo } from "../lib/format";
+import { fmtNumber, fmtPercent, timeAgo } from "../lib/format";
 import { useRealtimeEvent } from "../lib/realtime";
 import { STATE_LABEL, useTrainingLive } from "../lib/training";
-import type { Architecture, Recommendation, Summary, WeekPoint } from "../lib/types";
+import type { Architecture, Kpi, Recommendation, Summary, WeekPoint } from "../lib/types";
 
-const ACCENTS = ["text-cyan", "text-ink", "text-violet", "text-teal", "text-cyan"];
+const PERIODS = [7, 30, 90];
 
 interface LiveInference {
   student_code: string;
@@ -33,12 +34,13 @@ const TRAINING_STATES: NetState[] = ["en_cola", "cargando_datos", "entrenando", 
 export function Dashboard() {
   const { me } = useAuth();
   const isStudent = me?.role === "estudiante";
-  const summary = useQuery({ queryKey: ["summary", 30], queryFn: () => api<Summary>("/dashboard/summary") });
+  const [days, setDays] = useState(30);
+  const summary = useQuery({ queryKey: ["summary", days], queryFn: () => api<Summary>(`/dashboard/summary?days=${days}`) });
   const progress = useQuery({ queryKey: ["progress", 12], queryFn: () => api<WeekPoint[]>("/analytics/progress?weeks=12") });
   const completion = useQuery({ queryKey: ["completion"], queryFn: () => api<{ total: number; segments: { key: string; count: number; share: number }[] }>("/analytics/completion") });
   const regions = useQuery({ queryKey: ["regions"], queryFn: () => api<{ region: string; students: number; active_30d: number; completion_rate: number }[]>("/analytics/regions") });
   const skills = useQuery({ queryKey: ["skills"], queryFn: () => api<{ levels: string[]; skills: SkillRow[] }>("/analytics/skill-mastery") });
-  const recs = useQuery({ queryKey: ["recommendations", "dash"], queryFn: () => api<Recommendation[]>("/recommendations?status=nueva&limit=4") });
+  const recs = useQuery({ queryKey: ["recommendations", "dash"], queryFn: () => api<Recommendation[]>("/recommendations?status=nueva&limit=40") });
   const activity = useQuery({ queryKey: ["activity"], queryFn: () => api<ActivityItem[]>("/activity?limit=6") });
   const arch = useQuery({ queryKey: ["architecture", "active"], queryFn: () => api<Architecture>("/ml/models/active/architecture"), retry: false });
   const training = useTrainingLive(arch.data?.training_active);
@@ -55,44 +57,41 @@ export function Dashboard() {
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const netState: NetState = TRAINING_STATES.includes(training.state) ? training.state : inferring ? "inferencia" : "detenido";
-  const model = summary.data?.model;
+
+  const strip = buildStrip(summary.data, progress.data);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-xs text-violet">
-            últimos 30 días · actualizado {summary.data ? timeAgo(summary.data.generated_at) : "…"}
-            {summary.data?.is_demo && " · datos demo sintéticos"}
+          <h1 className="text-2xl font-bold tracking-tight">Centro de mando</h1>
+          <p className="mt-1 text-sm text-muted">
+            Últimos {days} días · actualizado {summary.data ? timeAgo(summary.data.generated_at) : "…"}
+            {summary.data?.is_demo && <> · <b className="font-semibold text-ink">datos DEMO sintéticos</b></>}
           </p>
-          <h1 className="mt-0.5 text-2xl font-bold">Centro de mando · Laboratorio en vivo</h1>
         </div>
-        <Link to="/ia" className="btn btn-ghost">Abrir laboratorio de IA →</Link>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
-        {summary.isLoading && Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-24" />)}
-        {summary.data?.kpis.map((k, i) => <KpiCard key={k.key} kpi={k} accent={ACCENTS[i]} />)}
-        {summary.data && (
-          <div className="panel min-w-0 p-3" title={model ? `Medido sobre el conjunto de prueba ${model.dataset_demo ? "DEMO" : "institucional"}` : undefined}>
-            <p className="truncate text-xs text-muted">Modelo en producción</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-violet">{model ? fmtPercent(model.completion_roc_auc) : "—"}</p>
-            <p className={`mt-1 text-xs ${model?.supera_baseline ? "text-teal" : "text-muted"}`}>
-              {model ? `ROC-AUC · v${model.version} · ${model.supera_baseline ? "supera baseline" : "no supera baseline"}` : "sin modelo publicado"}
-            </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <div role="group" aria-label="Periodo" className="flex overflow-hidden rounded-[10px] border border-line text-xs font-semibold">
+            {PERIODS.map((d) => (
+              <button key={d} type="button" aria-pressed={days === d} onClick={() => setDays(d)}
+                className={`px-3 py-2 ${days === d ? "bg-blue text-white" : "text-muted hover:text-ink"}`}>{d} d</button>
+            ))}
           </div>
-        )}
+          <Link to="/ia" className="btn btn-ghost">Abrir laboratorio de IA →</Link>
+        </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+      {strip ? <KpiStrip items={strip} /> : <Skeleton className="h-24" />}
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Panel
-          glow title="Arquitectura de aprendizaje inteligente"
+          glow={netState !== "detenido"} title="Arquitectura de aprendizaje inteligente"
           subtitle={arch.data ? <span className="font-mono">edumaster-mtl v{arch.data.version} · {arch.data.total_params.toLocaleString("es-PE")} parámetros · 4 cabezas</span> : undefined}
           actions={
             <>
-              <span className="flex gap-3 text-[11px] text-muted">
-                <span><i className="mr-1 inline-block h-[3px] w-3.5 bg-cyan align-middle" />propagación</span>
-                <span><i className="mr-1 inline-block h-[3px] w-3.5 bg-violet align-middle" />gradientes</span>
+              <span className="flex gap-3 whitespace-nowrap text-xs text-muted">
+                <span><span className="text-cyan">●</span> propagación</span>
+                <span><span className="text-violet">●</span> gradientes</span>
               </span>
               <Badge tone={netState === "error" ? "danger" : netState === "detenido" ? "muted" : "violet"}>{STATE_LABEL[netState]}</Badge>
             </>
@@ -102,18 +101,18 @@ export function Dashboard() {
             <>
               <NeuralNetworkCanvas architecture={arch.data} state={netState} activations={live?.activations} height={300} compact />
               {training.state === "entrenando" ? (
-                <p className="mt-1 font-mono text-xs text-muted">época {training.epoch}/{training.epochs} · loss val {training.history.at(-1)?.val_loss.toFixed(4)}</p>
+                <p className="mt-2 border-t border-line pt-3 font-mono text-xs text-muted">época {training.epoch}/{training.epochs} · loss val {training.history.at(-1)?.val_loss.toFixed(4)}</p>
               ) : (
-                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Output label="Finalización 28 días" value={live ? fmtPercent(live.completion_probability) : "—"} tone="text-teal" />
+                <div className="mt-2 grid grid-cols-2 border-t border-line sm:grid-cols-4 [&>*]:border-line [&>*:not(:first-child)]:sm:border-l">
+                  <Output label="Finalización en 28 días" value={live ? fmtPercent(live.completion_probability) : "—"} tone="text-teal" />
                   <Output label="Dominio estimado" value={live ? live.mastery_level : "—"} tone="text-violet capitalize" />
                   <Output label="Señal de riesgo" value={live ? fmtPercent(live.risk_probability) : "—"} tone="text-danger" />
-                  <Output label="Reforzar" value={live?.skill_to_reinforce ?? "—"} tone="text-cyan" />
+                  <Output label="Reforzar primero" value={live?.skill_to_reinforce ?? "—"} tone="text-cyan" />
                 </div>
               )}
-              <p className="mt-2.5 font-mono text-[11px] text-muted">
+              <p className="mt-1 font-mono text-[11px] text-muted">
                 {live
-                  ? `ejemplo ${live.student_code} · ${live.course_title} · nueva inferencia cada 5 s · ${live.latency_ms} ms`
+                  ? `${live.student_code} · ${live.course_title} · nueva inferencia cada 5 s · ${live.latency_ms} ms`
                   : isStudent
                     ? "la inferencia en vivo es visible para docentes y personal; tu estimación está en IA · Red neuronal"
                     : "esperando la próxima inferencia del servidor…"}
@@ -125,28 +124,29 @@ export function Dashboard() {
         <Panel title="Progreso analítico" subtitle="Semanal · 12 semanas">
           <QueryState q={progress} skeleton="h-56">{(d) => <TrendChart data={d} height={isStudent ? 300 : 210} />}</QueryState>
           {!isStudent && (
-            <div className="mt-3 border-t border-line pt-3">
+            <div className="-mx-4 -mb-4 mt-3 border-t border-line p-4">
               <TaskManagerCompact />
             </div>
           )}
         </Panel>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Mapa de progreso · Perú" subtitle="Estudiantes por región">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
+        <Panel title="Estudiantes por región">
           <QueryState q={regions} skeleton="h-56" empty={(d) => !d.length}>{(d) => <RegionMap regions={d} limit={6} />}</QueryState>
         </Panel>
-        <Panel title="Finalización de cursos">
-          <QueryState q={completion} skeleton="h-40" empty={(d) => !d.total}>{(d) => <CompletionDonut segments={d.segments} total={d.total} />}</QueryState>
+        <Panel title="Estado de matrículas" subtitle={completion.data ? `${fmtNumber(completion.data.total)} matrículas` : undefined}>
+          <QueryState q={completion} skeleton="h-40" empty={(d) => !d.total}>{(d) => <CompletionDonut segments={d.segments.filter((x) => x.count > 0)} total={d.total} />}</QueryState>
         </Panel>
         <Panel title="Dominio de habilidades" subtitle="Validado por evaluaciones calificadas">
           <QueryState q={skills} skeleton="h-48" empty={(d) => !d.skills.length}>{(d) => <SkillHeatmap skills={d.skills} levels={d.levels} />}</QueryState>
         </Panel>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Recomendaciones de IA" actions={<Link to="/recomendaciones" className="text-xs text-violet hover:underline">Ver todas</Link>}>
-          <QueryState q={recs} skeleton="h-48">{(d) => <RecommendationList items={d} compact showStudent={!isStudent} />}</QueryState>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+        <Panel title={isStudent ? "Mis recomendaciones" : "Atención prioritaria"} subtitle={isStudent ? "Sugerencias de la IA para ti" : "Recomendaciones de la IA para revisar"}
+          actions={<Link to="/recomendaciones" className="btn btn-ghost px-3 py-1.5 text-xs">Ver bandeja</Link>}>
+          <QueryState q={recs} skeleton="h-48">{(d) => <PriorityList items={d} showStudent={!isStudent} />}</QueryState>
         </Panel>
         <Panel title="Actividad reciente">
           <QueryState q={activity} skeleton="h-48">{(d) => <ActivityFeed items={d} />}</QueryState>
@@ -156,11 +156,50 @@ export function Dashboard() {
   );
 }
 
+const STRIP_STYLE: Record<string, { color: string; series?: (w: WeekPoint[]) => number[] }> = {
+  active_students: { color: "var(--cyan)", series: (w) => w.map((x) => x.active_students) },
+  courses: { color: "var(--ink)" },
+  learning_hours: { color: "var(--violet)", series: (w) => w.map((x) => x.hours) },
+  certificates: { color: "var(--teal)", series: (w) => cumulative(w.map((x) => x.completions)) },
+  completion_rate: { color: "var(--cyan)", series: (w) => cumulative(w.map((x) => x.completions)) },
+};
+
+function cumulative(values: number[]) {
+  let acc = 0;
+  return values.map((v) => (acc += v));
+}
+
+function kpiValue(k: Kpi) {
+  return k.unit === "%" ? fmtPercent(k.value) : `${fmtNumber(k.value)}${k.unit === "h" ? " h" : ""}`;
+}
+
+function buildStrip(summary?: Summary, weeks?: WeekPoint[]): StripItem[] | null {
+  if (!summary) return null;
+  const items: StripItem[] = summary.kpis.map((k) => {
+    const st = STRIP_STYLE[k.key] ?? { color: "var(--ink)" };
+    return {
+      key: k.key, label: k.label, value: kpiValue(k), color: st.color,
+      series: weeks && st.series ? st.series(weeks) : undefined,
+      delta: k.change == null ? "sin periodo comparable" : `${k.change >= 0 ? "▲" : "▼"} ${fmtPercent(Math.abs(k.change))} vs anterior`,
+      tone: k.change == null ? "flat" : k.change >= 0 ? "up" : "down",
+      title: `Fuente: ${k.source} · ${new Date(k.as_of).toLocaleString("es-PE")}`,
+    };
+  });
+  const m = summary.model;
+  items.push({
+    key: "model", label: "Modelo en producción", value: m ? fmtPercent(m.completion_roc_auc) : "—", color: "var(--violet)",
+    delta: m ? `ROC-AUC v${m.version} · ${m.supera_baseline ? "supera base" : "bajo la base"}` : "sin modelo publicado",
+    tone: m?.supera_baseline ? "up" : "flat",
+    title: m ? `Medido sobre el conjunto de prueba ${m.dataset_demo ? "DEMO" : "institucional"}` : undefined,
+  });
+  return items;
+}
+
 function Output({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="min-w-0 rounded-[10px] border border-line bg-surface-2 px-2.5 py-2">
-      <p className="truncate text-[11px] text-muted">{label}</p>
-      <p className={`mt-0.5 truncate text-base font-bold ${tone}`} title={value}>{value}</p>
+    <div className="min-w-0 py-3 sm:px-4 sm:first:pl-0">
+      <p className="truncate text-xs text-muted">{label}</p>
+      <p className={`mt-0.5 truncate text-lg font-bold ${tone}`} title={value}>{value}</p>
     </div>
   );
 }

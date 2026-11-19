@@ -130,8 +130,8 @@ function Shell() {
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-line bg-bg/90 px-4 py-3 backdrop-blur lg:px-7">
           <button className="lg:hidden" onClick={() => setOpen(true)} aria-label="Abrir menú"><Menu size={20} /></button>
           <div className="min-w-0 flex-1 basis-32">
-            <p className="truncate font-mono text-xs text-violet">{me?.organization_name.toLowerCase()} · {ROLE_LABEL[me?.role ?? ""]?.toLowerCase()}</p>
-            <p className="hidden text-sm font-semibold text-muted sm:block">Aprende <span className="text-cyan">•</span> Practica <span className="text-cyan">•</span> Destaca</p>
+            <p className="truncate text-sm font-semibold">{me?.organization_name}</p>
+            <p className="truncate text-xs text-muted">{ROLE_LABEL[me?.role ?? ""]} · Aprende, practica, destaca</p>
           </div>
           <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
             <form onSubmit={search} role="search" className="hidden md:block">

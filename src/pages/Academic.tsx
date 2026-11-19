@@ -321,9 +321,12 @@ export function Students() {
                 {d.items.map((s) => (
                   <li key={s.id}>
                     <button aria-current={selected === s.id} onClick={() => setSelected(s.id)}
-                      className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${selected === s.id ? "border-violet/50 bg-blue/15" : "border-transparent hover:bg-ink/5"}`}>
-                      <span className="block font-medium">{s.full_name}</span>
-                      <span className="block text-xs text-muted">{s.external_code} · {s.region} · {s.cohort}</span>
+                      className={`flex w-full items-center gap-3 rounded-[10px] border px-2.5 py-2 text-left text-sm transition ${selected === s.id ? "border-violet/50 bg-blue/15" : "border-transparent hover:bg-ink/5"}`}>
+                      <Initials name={s.full_name} />
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold">{s.full_name}</span>
+                        <span className="block truncate text-xs text-muted">{s.external_code} · {s.region} · {s.cohort}</span>
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -334,23 +337,27 @@ export function Students() {
         <div className="min-w-0 space-y-4">
           {!selected ? <Panel><p className="text-sm text-muted">Selecciona un estudiante.</p></Panel> : (
             <>
-              <Panel title={progress.data?.student.full_name ?? "Progreso"} icon={<BookOpen size={16} />}
+              <Panel title={progress.data?.student.full_name ?? "Progreso"} icon={progress.data ? <Initials name={progress.data.student.full_name} /> : <BookOpen size={16} />}
                 subtitle={progress.data ? `${progress.data.student.external_code} · ${progress.data.student.region} · cohorte ${progress.data.student.cohort}` : undefined}>
                 <QueryState q={progress} empty={(p) => !p.courses.length}>
                   {(p) => (
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {p.courses.map((c) => (
-                        <div key={c.course_id} className="rounded-xl border border-line bg-surface-2 p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-semibold">{c.title}</p>
-                            <Badge tone={c.status === "completado" ? "teal" : c.status === "inactivo" ? "danger" : "blue"}>{c.status}</Badge>
-                          </div>
-                          <div className="mt-2 flex justify-between text-xs text-muted"><span>Avance</span><span className="tabular-nums">{fmtPercent(c.progress)}</span></div>
-                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface"><div className="h-full rounded-full bg-gradient-to-r from-blue to-cyan" style={{ width: `${c.progress * 100}%` }} /></div>
-                          <p className="mt-2 text-xs text-muted">Promedio <b className="text-ink">{c.attempts ? c.average : "—"}</b> · {c.attempts} evaluaciones</p>
-                          <p className="text-xs text-muted">Última actividad {fmtDate(c.last_activity)}</p>
-                        </div>
-                      ))}
+                    <div className="overflow-x-auto">
+                      <table className="data min-w-[620px]">
+                        <thead><tr><th>Curso</th><th>Estado</th><th className="w-[30%]">Avance</th><th className="text-right">Promedio</th><th className="text-right">Última actividad</th></tr></thead>
+                        <tbody>
+                          {p.courses.map((c) => (
+                            <tr key={c.course_id}>
+                              <td className="!align-middle font-semibold">{c.title}</td>
+                              <td className="!align-middle"><Badge tone={c.status === "completado" ? "teal" : c.status === "inactivo" ? "danger" : "blue"}>{c.status}</Badge></td>
+                              <td className="!align-middle">
+                                <div className="flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-blue" style={{ width: `${c.progress * 100}%` }} /></div><span className="w-10 text-right text-xs tabular-nums text-muted">{fmtPercent(c.progress)}</span></div>
+                              </td>
+                              <td className="!align-middle text-right tabular-nums">{c.attempts ? c.average : "—"}<span className="block text-[11px] text-muted">{c.attempts} evaluaciones</span></td>
+                              <td className="!align-middle text-right text-xs text-muted">{fmtDate(c.last_activity)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </QueryState>
@@ -362,4 +369,9 @@ export function Students() {
       </div>
     </div>
   );
+}
+
+function Initials({ name }: { name: string }) {
+  const ini = name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-[11px] font-bold text-muted" aria-hidden>{ini}</span>;
 }

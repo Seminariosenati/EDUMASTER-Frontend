@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Download, Globe2, Grid3x3, PieChart, RefreshCw, Sparkles } from "lucide-react";
+import { BarChart3, Download, Globe2, Grid3x3, PieChart, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { CompletionDonut, TrendChart } from "../components/charts";
 import { Note, PageHeader, Panel, QueryState } from "../components/ui";
-import { RecommendationList, SkillHeatmap, type SkillRow } from "../components/widgets";
+import { REC_TYPES, RecommendationTable, SkillHeatmap, type SkillRow } from "../components/widgets";
 import { api, download } from "../lib/api";
 import { STAFF, useAuth } from "../lib/auth";
 import { fmtNumber, fmtPercent } from "../lib/format";
@@ -91,30 +91,57 @@ export function Analytics() {
   );
 }
 
+const STATUS_TABS = [
+  { key: "nueva", label: "Nuevas" },
+  { key: "aceptada", label: "Aceptadas" },
+  { key: "descartada", label: "Descartadas" },
+  { key: "completada", label: "Completadas" },
+  { key: "", label: "Todas" },
+];
+
 export function Recommendations() {
   const { me, can } = useAuth();
   const qc = useQueryClient();
   const [status, setStatus] = useState("nueva");
-  const q = useQuery({ queryKey: ["recommendations", status], queryFn: () => api<Recommendation[]>(`/recommendations?limit=60&status=${status}`) });
+  const [type, setType] = useState<string | null>(null);
+  const q = useQuery({ queryKey: ["recommendations", "all"], queryFn: () => api<Recommendation[]>("/recommendations?limit=200") });
   const gen = useMutation({
     mutationFn: () => api<{ students: number; created: number }>("/recommendations/generate", { method: "POST", json: {} }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["recommendations"] }),
   });
+  const all = q.data ?? [];
+  const byStatus = all.filter((r) => !status || r.status === status);
+  const shown = byStatus.filter((r) => !type || r.type === type);
+  const countStatus = (k: string) => all.filter((r) => !k || r.status === k).length;
+  const countType = (k: string) => byStatus.filter((r) => r.type === k).length;
   return (
-    <div>
-      <PageHeader title="Recomendaciones de IA" subtitle="Modelo + reglas de negocio (catálogo publicado, niveles y no duplicar). Siempre revisables por el docente."
+    <div className="space-y-4">
+      <PageHeader title="Recomendaciones de IA" subtitle="Modelo vigente + reglas del catálogo. Siempre revisables por el docente; nunca sancionan."
         actions={can(...STAFF, "docente", "ml_engineer") && (
           <button className="btn btn-primary" disabled={gen.isPending} onClick={() => gen.mutate()}><RefreshCw size={15} className={gen.isPending ? "animate-spin" : ""} /> Generar con el modelo vigente</button>
         )} />
-      {gen.data && <p className="mb-3 text-sm text-teal">Se evaluaron {gen.data.students} estudiantes y se crearon {gen.data.created} recomendaciones nuevas.</p>}
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {["nueva", "aceptada", "descartada", "completada", ""].map((s) => (
-          <button key={s} className={`btn px-3 py-1 text-xs ${status === s ? "btn-primary" : "btn-ghost"}`} onClick={() => setStatus(s)}>{s || "todas"}</button>
-        ))}
-      </div>
-      <Panel icon={<Sparkles size={16} />} title="Bandeja">
-        <QueryState q={q}>{(d) => <RecommendationList items={d} grid showStudent={me?.role !== "estudiante"} />}</QueryState>
-      </Panel>
+      {gen.data && <p role="status" className="text-sm text-teal">Se evaluaron {gen.data.students} estudiantes y se crearon {gen.data.created} recomendaciones nuevas.</p>}
+      <section className="panel overflow-hidden">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-4">
+          <div role="tablist" aria-label="Estado" className="-mb-px flex flex-wrap">
+            {STATUS_TABS.map((t) => (
+              <button key={t.key} role="tab" aria-selected={status === t.key} onClick={() => setStatus(t.key)}
+                className={`border-b-2 px-3.5 py-3 text-sm font-semibold transition ${status === t.key ? "border-blue text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+                {t.label} <span className="ml-1 font-medium text-muted">{countStatus(t.key)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="ml-auto flex flex-wrap gap-1.5 py-2" role="group" aria-label="Tipo">
+            {REC_TYPES.map((t) => (
+              <button key={t.key} aria-pressed={type === t.key} onClick={() => setType(type === t.key ? null : t.key)}
+                className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${type === t.key ? "border-violet/50 bg-violet/15 text-violet" : "border-line text-muted hover:text-ink"}`}>
+                {t.label} {countType(t.key)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <QueryState q={q} skeleton="h-64">{() => <RecommendationTable items={shown} showStudent={me?.role !== "estudiante"} />}</QueryState>
+      </section>
     </div>
   );
 }

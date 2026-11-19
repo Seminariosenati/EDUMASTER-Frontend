@@ -57,15 +57,16 @@ export function CompletionDonut({ segments, total }: { segments: { key: string; 
           <span className="text-[11px] text-muted">completados</span>
         </div>
       </div>
-      <ul className="space-y-1.5 text-sm">
+      <ul className="min-w-[200px] flex-1 space-y-1.5 text-sm">
         {segments.map((s) => (
           <li key={s.key} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: SEGMENT_COLOR[s.key] }} />
             <span className="text-muted">{SEGMENT_LABEL[s.key]}</span>
-            <span className="ml-auto font-semibold tabular-nums">{fmtPercent(s.share)}</span>
+            <span className="ml-auto pl-3 font-semibold tabular-nums">{fmtNumber(s.count)}</span>
+            <span className="w-12 text-right text-xs tabular-nums text-muted">{fmtPercent(s.share)}</span>
           </li>
         ))}
-        <li className="pt-1 text-xs text-muted">{fmtNumber(total)} matrículas</li>
+        <li className="pt-1 text-xs text-muted">{fmtNumber(total)} matrículas en total</li>
       </ul>
     </div>
   );

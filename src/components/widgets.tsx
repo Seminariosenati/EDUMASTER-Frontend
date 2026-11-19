@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Award, BookCheck, BrainCircuit, CheckCircle2, ClipboardCheck, Cpu, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, ArrowRight, Award, BookCheck, BrainCircuit, CheckCircle2, ClipboardCheck, Cpu, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { api } from "../lib/api";
 import { fmtBytes, fmtNumber, fmtPercent, timeAgo } from "../lib/format";
 import { useRealtimeEvent } from "../lib/realtime";
@@ -62,54 +62,6 @@ export function RegionMap({ regions, limit = 8 }: { regions: { region: string; s
   );
 }
 
-const REC_ICON: Record<string, string> = { acompanamiento: "text-danger", completar: "text-teal", ruta: "text-cyan", refuerzo: "text-violet" };
-
-const TYPE_LABEL: Record<string, string> = { acompanamiento: "Acompañamiento", completar: "Completar", ruta: "Siguiente curso", refuerzo: "Refuerzo" };
-const TYPE_BAR: Record<string, string> = { acompanamiento: "bg-danger", completar: "bg-teal", ruta: "bg-cyan", refuerzo: "bg-violet" };
-
-export function RecommendationList({ items, compact, showStudent, grid }: { items: Recommendation[]; compact?: boolean; showStudent?: boolean; grid?: boolean }) {
-  const qc = useQueryClient();
-  const fb = useMutation({
-    mutationFn: ({ id, status, useful }: { id: string; status?: string; useful?: boolean }) =>
-      api(`/recommendations/${id}/feedback`, { method: "POST", json: { status, useful } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["recommendations"] }),
-  });
-  if (!items.length) return <EmptyState message="No hay recomendaciones vigentes" icon={<Sparkles size={22} />} />;
-  return (
-    <ul className={grid ? "grid gap-3 sm:grid-cols-2 2xl:grid-cols-3" : "space-y-2"}>
-      {items.map((r) => (
-        <li key={r.id} className={`relative flex flex-col overflow-hidden rounded-xl border border-line bg-surface-2 ${grid ? "p-4 pl-5" : "p-2.5"}`}>
-          {grid && <span className={`absolute inset-y-0 left-0 w-1 ${TYPE_BAR[r.type] ?? "bg-cyan"}`} aria-hidden />}
-          <div className="flex items-start gap-2">
-            <Sparkles size={15} className={`mt-0.5 shrink-0 ${REC_ICON[r.type] ?? "text-cyan"}`} />
-            <div className="min-w-0 flex-1">
-              {grid && <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{TYPE_LABEL[r.type] ?? r.type}</p>}
-              <p className="text-sm font-semibold">{r.title}</p>
-              {showStudent && <p className="text-xs text-cyan">{r.student.full_name}</p>}
-            </div>
-          </div>
-          {!compact && <p className={`mt-2 text-xs leading-relaxed text-muted ${grid ? "flex-1" : ""}`}>{r.rationale}</p>}
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <Badge tone={r.status === "nueva" ? "blue" : r.status === "descartada" ? "muted" : "teal"}>{r.status}</Badge>
-            <Badge tone="muted">impacto {r.impact}</Badge>
-            {r.skill && <Badge tone="violet">{r.skill.name}</Badge>}
-            {r.useful != null && <Badge tone={r.useful ? "teal" : "muted"}>{r.useful ? "útil" : "no útil"}</Badge>}
-          </div>
-          {!compact && r.status === "nueva" && (
-            <div className={`mt-3 flex flex-wrap gap-1.5 ${grid ? "border-t border-line pt-3" : ""}`}>
-              <button className="btn btn-primary px-2.5 py-1.5 text-xs" onClick={() => fb.mutate({ id: r.id, status: "aceptada" })}><CheckCircle2 size={13} /> Aceptar</button>
-              <button className="btn btn-ghost px-2.5 py-1.5 text-xs" onClick={() => fb.mutate({ id: r.id, status: "descartada" })}><X size={13} /> Descartar</button>
-              <span className="ml-auto flex gap-1.5">
-                <button className="btn btn-ghost px-2 py-1.5 text-xs" onClick={() => fb.mutate({ id: r.id, useful: true })} aria-label="Marcar como útil" title="Útil"><ThumbsUp size={13} /></button>
-                <button className="btn btn-ghost px-2 py-1.5 text-xs" onClick={() => fb.mutate({ id: r.id, useful: false })} aria-label="Marcar como no útil" title="No útil"><ThumbsDown size={13} /></button>
-              </span>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 export interface ActivityItem {
   id: string;
@@ -135,18 +87,104 @@ function describe(a: ActivityItem) {
 export function ActivityFeed({ items }: { items: ActivityItem[] }) {
   if (!items.length) return <EmptyState message="Sin actividad reciente" />;
   return (
-    <ul className="space-y-2">
+    <ol className="relative">
+      <span className="absolute bottom-3 left-[4px] top-3 w-px bg-line" aria-hidden />
       {items.map((a, i) => {
         const d = describe(a);
         return (
-          <li key={a.id} className={`flex items-start gap-2 rounded-[10px] text-sm ${i === 0 ? "border border-teal/40 bg-teal/10 px-2.5 py-2" : "px-2.5 py-1"}`}>
-            <span className="mt-0.5">{d.icon}</span>
-            <span className="min-w-0 flex-1">{d.text}</span>
-            <span className="shrink-0 text-[11px] text-muted">{timeAgo(a.occurred_at)}</span>
+          <li key={a.id} className="relative grid grid-cols-[10px_minmax(0,1fr)_auto] items-start gap-3 py-2 text-sm">
+            <span className={`relative mt-1.5 h-[9px] w-[9px] rounded-full ${i === 0 ? "bg-teal shadow-[0_0_0_4px_color-mix(in_srgb,var(--teal)_22%,transparent)]" : "bg-line"}`} aria-hidden />
+            <span className="min-w-0">{d.text}</span>
+            <span className="shrink-0 text-xs text-muted">{timeAgo(a.occurred_at)}</span>
           </li>
         );
       })}
+    </ol>
+  );
+}
+
+const PRIORITY: Record<string, number> = { acompanamiento: 0, completar: 1, ruta: 2, refuerzo: 3 };
+const TILE: Record<string, { cls: string; icon: ReactNode; label: string }> = {
+  acompanamiento: { cls: "bg-danger/15 text-danger", icon: <AlertTriangle size={16} />, label: "Acompañamiento" },
+  ruta: { cls: "bg-cyan/15 text-cyan", icon: <ArrowRight size={16} />, label: "Siguiente curso" },
+  completar: { cls: "bg-teal/15 text-teal", icon: <CheckCircle2 size={16} />, label: "Completar" },
+  refuerzo: { cls: "bg-violet/15 text-violet", icon: <Sparkles size={16} />, label: "Refuerzo" },
+};
+
+export function RecTile({ type }: { type: string }) {
+  const t = TILE[type] ?? TILE.refuerzo;
+  return <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${t.cls}`} title={t.label} aria-label={t.label}>{t.icon}</span>;
+}
+
+export const REC_TYPES = Object.entries(TILE).map(([key, t]) => ({ key, label: t.label }));
+
+/** Las recomendaciones más urgentes primero: acompañamiento, luego por puntaje. */
+export function PriorityList({ items, showStudent, limit = 3 }: { items: Recommendation[]; showStudent?: boolean; limit?: number }) {
+  if (!items.length) return <EmptyState message="Nada pendiente de revisar" icon={<Sparkles size={22} />} />;
+  const sorted = [...items].sort((a, b) => (PRIORITY[a.type] ?? 9) - (PRIORITY[b.type] ?? 9) || b.score - a.score).slice(0, limit);
+  return (
+    <ul className="divide-y divide-line">
+      {sorted.map((r) => (
+        <li key={r.id} className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+          <RecTile type={r.type} />
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{r.title}</p>
+            <p className="truncate text-xs text-muted">{showStudent ? `${r.student.full_name} · ` : ""}{r.rationale}</p>
+          </div>
+          <Badge tone={r.impact === "alto" ? "danger" : "muted"}>impacto {r.impact}</Badge>
+        </li>
+      ))}
     </ul>
+  );
+}
+
+export function RecommendationTable({ items, showStudent }: { items: Recommendation[]; showStudent?: boolean }) {
+  const qc = useQueryClient();
+  const fb = useMutation({
+    mutationFn: ({ id, status, useful }: { id: string; status?: string; useful?: boolean }) =>
+      api(`/recommendations/${id}/feedback`, { method: "POST", json: { status, useful } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["recommendations"] }),
+  });
+  if (!items.length) return <div className="p-6"><EmptyState message="No hay recomendaciones con estos filtros" icon={<Sparkles size={22} />} /></div>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="data min-w-[900px]">
+        <thead>
+          <tr>
+            <th className="w-12" /><th>Recomendación</th>{showStudent && <th>Estudiante</th>}<th>Competencia</th><th>Impacto</th><th className="text-right">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((r) => (
+            <tr key={r.id}>
+              <td className="!align-middle"><RecTile type={r.type} /></td>
+              <td className="!align-middle">
+                <p className="font-semibold">{r.title}</p>
+                <p className="max-w-[68ch] text-xs text-muted">{r.rationale}</p>
+              </td>
+              {showStudent && <td className="!align-middle whitespace-nowrap">{r.student.full_name}</td>}
+              <td className="!align-middle whitespace-nowrap">{r.skill && <Badge tone="violet">{r.skill.name}</Badge>}</td>
+              <td className="!align-middle">
+                <span className="flex flex-wrap gap-1">
+                  <Badge tone={r.impact === "alto" ? "danger" : "muted"}>{r.impact}</Badge>
+                  {r.useful != null && <Badge tone={r.useful ? "teal" : "muted"}>{r.useful ? "útil" : "no útil"}</Badge>}
+                </span>
+              </td>
+              <td className="!align-middle text-right">
+                {r.status === "nueva" ? (
+                  <span className="inline-flex flex-nowrap justify-end gap-1.5 whitespace-nowrap">
+                    <button className="btn btn-primary px-2.5 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, status: "aceptada" })}><CheckCircle2 size={13} /> Aceptar</button>
+                    <button className="btn btn-ghost px-2.5 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, status: "descartada" })}><X size={13} /> Descartar</button>
+                    <button className="btn btn-ghost px-2 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, useful: true })} aria-label="Marcar como útil" title="Útil"><ThumbsUp size={13} /></button>
+                    <button className="btn btn-ghost px-2 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, useful: false })} aria-label="Marcar como no útil" title="No útil"><ThumbsDown size={13} /></button>
+                  </span>
+                ) : <Badge tone={r.status === "descartada" ? "muted" : "teal"}>{r.status}</Badge>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -282,5 +320,45 @@ export function TaskManagerCompact() {
         <div className="h-full rounded-full bg-gradient-to-r from-blue to-violet transition-[width] duration-700" style={{ width: `${last?.memory_percent ?? 0}%` }} />
       </div>
     </div>
+  );
+}
+
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values), min = Math.min(...values);
+  const pts = values.map((v, i) => `${(i * 64) / (values.length - 1)},${24 - ((v - min) / (max - min || 1)) * 20}`).join(" ");
+  return (
+    <svg viewBox="0 0 64 26" width="64" height="26" className="shrink-0" aria-hidden>
+      <polyline fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" points={pts} />
+    </svg>
+  );
+}
+
+export interface StripItem {
+  key: string;
+  label: string;
+  value: string;
+  delta: string;
+  tone: "up" | "down" | "flat";
+  color: string;
+  series?: number[];
+  title?: string;
+}
+
+/** KPIs en una sola franja con divisores: lectura de un vistazo sin una fila de tarjetas idénticas. */
+export function KpiStrip({ items }: { items: StripItem[] }) {
+  return (
+    <section className="panel grid grid-cols-2 gap-px overflow-hidden !bg-line md:grid-cols-3 xl:grid-cols-6" aria-label="Indicadores principales">
+      {items.map((k) => (
+        <div key={k.key} title={k.title} className="flex min-w-0 flex-col gap-0.5 bg-surface p-4">
+          <span className="truncate text-xs text-muted">{k.label}</span>
+          <div className="flex items-end justify-between gap-2">
+            <span className="whitespace-nowrap text-2xl font-bold tabular-nums tracking-tight" style={{ color: k.color }}>{k.value}</span>
+            {k.series && <Sparkline values={k.series} color={k.color} />}
+          </div>
+          <span className={`truncate text-xs font-semibold ${k.tone === "up" ? "text-teal" : k.tone === "down" ? "text-danger" : "text-muted"}`}>{k.delta}</span>
+        </div>
+      ))}
+    </section>
   );
 }

@@ -56,7 +56,7 @@ export function StudentAI({ studentId, courseTitles }: { studentId: string; cour
     : [];
 
   return (
-    <Panel glow icon={<BrainCircuit size={16} />} title="Análisis de IA del estudiante"
+    <Panel glow={animating} icon={<BrainCircuit size={16} />} title="Análisis de IA"
       subtitle={preds.data ? <span className="font-mono">edumaster-mtl v{preds.data.model_version} · inferencia con sus datos actuales</span> : undefined}
       actions={<Badge tone={animating ? "violet" : "muted"}>{animating ? "Inferencia activa" : "Detenido"}</Badge>}>
       {preds.isLoading || arch.isLoading ? <Skeleton className="h-80" /> : preds.error ? <ErrorState error={preds.error} /> : !current ? (
@@ -77,26 +77,26 @@ export function StudentAI({ studentId, courseTitles }: { studentId: string; cour
           {arch.data && (
             <NeuralNetworkCanvas architecture={arch.data} state={animating ? "inferencia" : "detenido"} activations={current.activations} height={260} compact />
           )}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Out label="Finalizar en 28 días" value={fmtPercent(current.completion_probability)} tone="text-teal" />
+          <div className="grid grid-cols-2 border-t border-line sm:grid-cols-4 [&>*:not(:first-child)]:sm:border-l [&>*]:border-line">
+            <Out label="Finalización en 28 días" value={fmtPercent(current.completion_probability)} tone="text-teal" />
             <Out label="Dominio estimado" value={current.mastery_level} tone="text-violet capitalize" />
             <Out label="Señal de riesgo" value={fmtPercent(current.risk_probability)} tone="text-danger" />
             <Out label="Reforzar primero" value={topSkills[0] ?? "—"} tone="text-cyan" />
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-line bg-surface-2 p-3">
-              <p className="mb-2 text-xs font-semibold text-muted">Distribución del dominio (cabeza softmax)</p>
+          <div className="-mx-4 grid border-t border-line md:grid-cols-2">
+            <div className="p-4">
+              <p className="mb-3 text-sm font-semibold">Distribución del dominio</p>
               {LEVELS.map((l) => (
                 <div key={l} className="mb-1.5 flex items-center gap-2 text-xs">
                   <span className="w-20 capitalize">{l}</span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface"><div className="h-full rounded-full bg-gradient-to-r from-blue to-violet" style={{ width: `${(current.mastery_distribution[l] ?? 0) * 100}%` }} /></div>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-blue" style={{ width: `${(current.mastery_distribution[l] ?? 0) * 100}%` }} /></div>
                   <span className="w-11 text-right tabular-nums text-muted">{fmtPercent(current.mastery_distribution[l] ?? 0)}</span>
                 </div>
               ))}
               <p className="mt-2 text-xs text-muted">Competencias a reforzar: <b className="text-ink">{topSkills.join(" → ")}</b></p>
             </div>
-            <div className="rounded-xl border border-line bg-surface-2 p-3 text-xs">
-              <p className="mb-2 font-semibold text-muted">Factores principales (gradiente × entrada)</p>
+            <div className="border-line p-4 text-xs md:border-l">
+              <p className="mb-2 text-sm font-semibold">Por qué la red estima esto <span className="font-normal text-muted">· gradiente × entrada</span></p>
               <FactorList title="Riesgo" factors={current.explanation.riesgo} goodWhen="disminuye" />
               <FactorList title="Finalización" factors={current.explanation.finalizacion} goodWhen="aumenta" />
             </div>
@@ -110,9 +110,9 @@ export function StudentAI({ studentId, courseTitles }: { studentId: string; cour
 
 function Out({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="min-w-0 rounded-[10px] border border-line bg-surface-2 px-2.5 py-2">
-      <p className="truncate text-[11px] text-muted">{label}</p>
-      <p className={`mt-0.5 truncate text-base font-bold ${tone}`} title={value}>{value}</p>
+    <div className="min-w-0 py-3 sm:px-4 sm:first:pl-0">
+      <p className="truncate text-xs text-muted">{label}</p>
+      <p className={`mt-0.5 truncate text-lg font-bold ${tone}`} title={value}>{value}</p>
     </div>
   );
 }
