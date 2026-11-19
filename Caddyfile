@@ -1,6 +1,6 @@
-# SITE_ADDRESS=:80 sirve solo HTTP; con un dominio (p.ej. edumaster-linux.northcentralus.cloudapp.azure.com)
-# Caddy obtiene automáticamente un certificado HTTPS de Let's Encrypt.
-{$SITE_ADDRESS::80} {
+# SITE_ADDRESS = dominio DNS (HTTPS automático con Let's Encrypt) o :80 para solo HTTP.
+# PUBLIC_IP = IP pública de la VM: también se puede entrar por http://<IP> (sin HTTPS: no hay certificados para IPs).
+(edumaster) {
 	encode gzip
 	header {
 		X-Content-Type-Options nosniff
@@ -17,4 +17,12 @@
 		try_files {path} /index.html
 		file_server
 	}
+}
+
+{$SITE_ADDRESS::80} {
+	import edumaster
+}
+
+http://{$PUBLIC_IP:127.0.0.1} {
+	import edumaster
 }
