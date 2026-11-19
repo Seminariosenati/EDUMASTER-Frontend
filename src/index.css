@@ -36,14 +36,15 @@
   --edge: rgba(148, 163, 184, 0.13);
   --input-bg: rgba(0, 0, 0, 0.25);
   --glow: 0 0 40px -14px rgba(139, 92, 246, 0.6);
+  --card-shadow: none;
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f4f6fb;
+  --bg: #dce2ec;
   --surface: #ffffff;
-  --surface-2: #f1f4f9;
-  --line: #e2e8f0;
+  --surface-2: #f0f3f8;
+  --line: #c3ccdb;
   --ink: #0f172a;
   --muted: #55607a;
   --primary: #7c3aed;
@@ -52,9 +53,10 @@
   --teal: #0f766e;
   --danger: #be123c;
   --warn: #92400e;
-  --edge: #e2e8f0;
+  --edge: #cbd3e0;
   --input-bg: #ffffff;
-  --glow: 0 10px 30px -18px rgba(15, 23, 42, 0.35);
+  --glow: 0 1px 3px rgba(15, 23, 42, 0.12), 0 14px 32px -12px rgba(109, 40, 217, 0.45);
+  --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.12), 0 10px 26px -10px rgba(15, 23, 42, 0.28);
 }
 
 html,
@@ -77,6 +79,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 16px;
+  box-shadow: var(--card-shadow);
 }
 
 .panel-glow {
