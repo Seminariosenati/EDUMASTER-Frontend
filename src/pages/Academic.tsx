@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CheckCircle2, Circle, Map, PlayCircle, Plus, Users } from "lucide-react";
-import { useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Badge, ErrorState, Field, Modal, Note, PageHeader, Panel, QueryState } from "../components/ui";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -49,7 +49,7 @@ export function LearningPaths() {
                         <p className="mt-1 text-sm font-semibold">{s.title}</p>
                         <Badge tone={LEVEL_TONE[s.level]}>{s.level}</Badge>
                         {s.my_progress !== undefined && (
-                          <div className="mt-2 h-1.5 rounded-full bg-white/5"><div className="h-full rounded-full bg-cyan" style={{ width: `${s.my_progress * 100}%` }} /></div>
+                          <div className="mt-2 h-1.5 rounded-full bg-ink/5"><div className="h-full rounded-full bg-cyan" style={{ width: `${s.my_progress * 100}%` }} /></div>
                         )}
                       </Link>
                       {i < p.steps.length - 1 && <span className="hidden text-cyan md:block">→</span>}
@@ -67,8 +67,10 @@ export function LearningPaths() {
 
 export function Courses() {
   const { can, me } = useAuth();
-  const [search, setSearch] = useState("");
+  const [params] = useSearchParams();
+  const [search, setSearch] = useState(params.get("q") ?? "");
   const [level, setLevel] = useState("");
+  useEffect(() => setSearch(params.get("q") ?? ""), [params]);
   const [mine, setMine] = useState(me?.role === "estudiante");
   const [open, setOpen] = useState(false);
   const q = useQuery({
@@ -107,7 +109,7 @@ export function Courses() {
                 {c.my_enrollment ? (
                   <div className="mt-3">
                     <div className="flex justify-between text-xs text-muted"><span>Mi avance</span><span>{fmtPercent(c.my_enrollment.progress)}</span></div>
-                    <div className="mt-1 h-1.5 rounded-full bg-white/5"><div className="h-full rounded-full bg-cyan" style={{ width: `${c.my_enrollment.progress * 100}%` }} /></div>
+                    <div className="mt-1 h-1.5 rounded-full bg-ink/5"><div className="h-full rounded-full bg-cyan" style={{ width: `${c.my_enrollment.progress * 100}%` }} /></div>
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-muted">
@@ -216,7 +218,7 @@ export function CourseDetail() {
           {me?.role === "estudiante" && c.my_enrollment && (
             <Panel title="Mi avance" icon={<PlayCircle size={16} />} subtitle="Cada acción genera un evento que actualiza el dashboard en tiempo real">
               <div className="flex justify-between text-sm"><span>{c.my_enrollment.status}</span><span className="font-semibold">{fmtPercent(c.my_enrollment.progress)}</span></div>
-              <div className="mt-1 h-2 rounded-full bg-white/5"><div className="h-full rounded-full bg-gradient-to-r from-blue to-cyan" style={{ width: `${c.my_enrollment.progress * 100}%` }} /></div>
+              <div className="mt-1 h-2 rounded-full bg-ink/5"><div className="h-full rounded-full bg-gradient-to-r from-blue to-cyan" style={{ width: `${c.my_enrollment.progress * 100}%` }} /></div>
               {c.my_enrollment.status !== "completado" && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button className="btn btn-ghost" disabled={event.isPending} onClick={() => event.mutate("lesson_viewed")}>Ver lección</button>
@@ -310,7 +312,7 @@ export function Students() {
               <ul className="max-h-[520px] space-y-1 overflow-y-auto">
                 {d.items.map((s) => (
                   <li key={s.id}>
-                    <button className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-white/5 ${selected === s.id ? "bg-blue/20" : ""}`} onClick={() => setSelected(s.id)}>
+                    <button className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-ink/5 ${selected === s.id ? "bg-blue/20" : ""}`} onClick={() => setSelected(s.id)}>
                       {s.full_name} <span className="text-xs text-muted">· {s.external_code} · {s.region} · {s.cohort}</span>
                     </button>
                   </li>
@@ -327,7 +329,7 @@ export function Students() {
                   {p.courses.map((c) => (
                     <li key={c.course_id}>
                       <div className="flex justify-between text-sm"><span>{c.title}</span><Badge tone={c.status === "completado" ? "teal" : c.status === "inactivo" ? "danger" : "blue"}>{c.status}</Badge></div>
-                      <div className="mt-1 h-1.5 rounded-full bg-white/5"><div className="h-full rounded-full bg-cyan" style={{ width: `${c.progress * 100}%` }} /></div>
+                      <div className="mt-1 h-1.5 rounded-full bg-ink/5"><div className="h-full rounded-full bg-cyan" style={{ width: `${c.progress * 100}%` }} /></div>
                       <p className="mt-0.5 text-[11px] text-muted">Promedio {c.average} · última actividad {fmtDate(c.last_activity)}</p>
                     </li>
                   ))}

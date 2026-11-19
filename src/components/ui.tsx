@@ -33,7 +33,7 @@ const TONES = {
   violet: "bg-violet/15 text-violet border-violet/40",
   warn: "bg-warn/15 text-warn border-warn/40",
   danger: "bg-danger/15 text-danger border-danger/40",
-  muted: "bg-white/5 text-muted border-line",
+  muted: "bg-ink/5 text-muted border-line",
 };
 
 export function Badge({ children, tone = "blue" }: { children: ReactNode; tone?: keyof typeof TONES }) {
@@ -72,7 +72,7 @@ export function KpiCard({ kpi, accent = "text-cyan" }: { kpi: Kpi; accent?: stri
 }
 
 export function Skeleton({ className = "h-24" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-xl bg-white/5 ${className}`} aria-label="Cargando" />;
+  return <div className={`animate-pulse rounded-xl bg-ink/5 ${className}`} aria-label="Cargando" />;
 }
 
 export function EmptyState({ message, icon }: { message: string; icon?: ReactNode }) {

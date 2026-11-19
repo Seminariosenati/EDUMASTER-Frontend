@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { ThemeToggle } from "../lib/theme";
 
 const DEMO_ACCOUNTS = [
   ["admin@edumaster.demo", "Administrador"],
@@ -35,7 +36,8 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgba(8,127,229,0.25),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(139,77,255,0.18),transparent_50%)] p-4">
+    <div className="relative flex min-h-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--primary)_22%,transparent),transparent_55%),radial-gradient(circle_at_80%_80%,color-mix(in_srgb,var(--cyan)_14%,transparent),transparent_50%)] p-4">
+      <div className="absolute right-4 top-4"><ThemeToggle /></div>
       <div className="panel panel-glow w-full max-w-md p-6">
         <div className="mb-6 text-center">
           <GraduationCap className="mx-auto mb-2 text-cyan" size={36} />
@@ -56,7 +58,7 @@ export function Login() {
             <LogIn size={16} /> {busy ? "Ingresando…" : "Ingresar"}
           </button>
         </form>
-        <div className="mt-6 rounded-lg border border-line bg-white/[0.02] p-3 text-xs text-muted">
+        <div className="mt-6 rounded-lg border border-line bg-ink/[0.03] p-3 text-xs text-muted">
           <p className="mb-2 font-semibold text-ink">Cuentas DEMO (contraseña: Demo2026!)</p>
           <div className="flex flex-wrap gap-1.5">
             {DEMO_ACCOUNTS.map(([mail, label]) => (

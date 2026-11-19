@@ -31,7 +31,7 @@ export function SkillHeatmap({ skills, levels, source = "validated" }: { skills:
               <td className="truncate pr-1 text-ink" title={s.name}>{s.name}</td>
               {s[source].map((c) => (
                 <td key={c.level} className="h-8 rounded-md text-center tabular-nums" title={`${c.count} estudiantes`}
-                  style={{ background: `rgba(${source === "validated" ? "32,200,245" : "139,77,255"},${0.08 + c.share * 1.6})` }}>
+                  style={{ background: `color-mix(in srgb, var(${source === "validated" ? "--primary" : "--cyan"}) ${Math.round(Math.min(95, 8 + c.share * 160))}%, transparent)`, color: c.share > 0.42 ? "#fff" : undefined }}>
                   {fmtPercent(c.share)}
                 </td>
               ))}
@@ -43,44 +43,22 @@ export function SkillHeatmap({ skills, levels, source = "validated" }: { skills:
   );
 }
 
-const REGION_POS: Record<string, [number, number]> = {
-  Loreto: [62, 14], Piura: [14, 22], Lambayeque: [20, 36], "La Libertad": [28, 48], Lima: [38, 66], "Junín": [52, 60],
-  Cusco: [66, 76], Arequipa: [58, 90],
-};
-
-export function RegionMap({ regions }: { regions: { region: string; students: number; active_30d: number; completion_rate: number }[] }) {
+export function RegionMap({ regions, limit = 8 }: { regions: { region: string; students: number; active_30d: number; completion_rate: number }[]; limit?: number }) {
   const max = Math.max(...regions.map((r) => r.students), 1);
   return (
-    <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <div className="relative aspect-[4/5] max-h-64 rounded-xl border border-line bg-[radial-gradient(circle_at_50%_40%,rgba(8,127,229,0.18),transparent_70%)]">
-        <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
-          <path d="M14 18 L40 6 L72 8 L84 26 L76 44 L80 64 L74 84 L60 96 L44 84 L30 70 L22 52 L12 36 Z" fill="rgba(13,43,82,0.7)" stroke="rgba(32,130,230,0.5)" strokeWidth="0.6" />
-        </svg>
-        {regions.map((r) => {
-          const pos = REGION_POS[r.region] ?? [50, 50];
-          const size = 10 + (r.students / max) * 26;
-          return (
-            <div key={r.region} className="absolute -translate-x-1/2 -translate-y-1/2 text-center" style={{ left: `${pos[0]}%`, top: `${pos[1]}%` }}>
-              <div className="mx-auto rounded-full bg-cyan/40 shadow-[0_0_14px_#20C8F5]" style={{ width: size, height: size }} title={`${r.region}: ${r.students} estudiantes`} />
-              <span className="mt-0.5 block whitespace-nowrap text-[10px] text-ink">{r.region}</span>
-            </div>
-          );
-        })}
-      </div>
-      <ul className="space-y-2 text-sm">
-        {regions.map((r) => (
-          <li key={r.region}>
-            <div className="flex justify-between text-xs">
-              <span>{r.region}</span>
-              <span className="tabular-nums text-muted">{fmtNumber(r.students)} · activos {fmtNumber(r.active_30d)}</span>
-            </div>
-            <div className="mt-1 h-1.5 rounded-full bg-white/5">
-              <div className="h-full rounded-full bg-gradient-to-r from-blue to-cyan" style={{ width: `${(r.students / max) * 100}%` }} />
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <ul className="space-y-3 text-sm">
+      {regions.slice(0, limit).map((r) => (
+        <li key={r.region}>
+          <div className="flex justify-between text-xs">
+            <span>{r.region}</span>
+            <span className="tabular-nums text-muted">{fmtNumber(r.students)} · activos {fmtNumber(r.active_30d)} · finaliza {fmtPercent(r.completion_rate)}</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
+            <div className="h-full rounded-full bg-gradient-to-r from-blue to-cyan" style={{ width: `${(r.students / max) * 100}%` }} />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -97,7 +75,7 @@ export function RecommendationList({ items, compact, showStudent }: { items: Rec
   return (
     <ul className="space-y-2">
       {items.map((r) => (
-        <li key={r.id} className="rounded-lg border border-line bg-white/[0.02] p-2.5">
+        <li key={r.id} className="rounded-lg border border-line bg-ink/[0.03] p-2.5">
           <div className="flex items-start gap-2">
             <Sparkles size={15} className={`mt-0.5 shrink-0 ${REC_ICON[r.type] ?? "text-cyan"}`} />
             <div className="min-w-0 flex-1">
@@ -150,10 +128,10 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
   if (!items.length) return <EmptyState message="Sin actividad reciente" />;
   return (
     <ul className="space-y-2">
-      {items.map((a) => {
+      {items.map((a, i) => {
         const d = describe(a);
         return (
-          <li key={a.id} className="flex items-start gap-2 text-sm">
+          <li key={a.id} className={`flex items-start gap-2 rounded-[10px] text-sm ${i === 0 ? "border border-teal/40 bg-teal/10 px-2.5 py-2" : "px-2.5 py-1"}`}>
             <span className="mt-0.5">{d.icon}</span>
             <span className="min-w-0 flex-1">{d.text}</span>
             <span className="shrink-0 text-[11px] text-muted">{timeAgo(a.occurred_at)}</span>
@@ -196,7 +174,7 @@ export function ArchitectureTable({ arch, compareTo, compact }: { arch: Architec
                 <td className="text-right tabular-nums">{fmtBytes(l.total_bytes)}</td>
                 {!compact && (
                   <td className="w-40">
-                    <div className="h-1.5 rounded-full bg-white/5">
+                    <div className="h-1.5 rounded-full bg-ink/5">
                       <div className="h-full rounded-full bg-gradient-to-r from-blue to-violet" style={{ width: `${l.memory_share * 100}%` }} />
                     </div>
                   </td>
@@ -251,7 +229,7 @@ export function ResourceMonitor() {
       <ResourceChart points={points} />
       <div className="mt-2 flex gap-1" aria-label="Uso por núcleo">
         {last.cpu_per_core.map((c, i) => (
-          <div key={i} className="flex h-8 flex-1 flex-col justify-end rounded bg-white/5" title={`Núcleo ${i + 1}: ${c.toFixed(0)}%`}>
+          <div key={i} className="flex h-8 flex-1 flex-col justify-end rounded bg-ink/5" title={`Núcleo ${i + 1}: ${c.toFixed(0)}%`}>
             <div className="rounded bg-cyan/60" style={{ height: `${Math.max(c, 3)}%` }} />
           </div>
         ))}
@@ -262,10 +240,39 @@ export function ResourceMonitor() {
 
 function Stat({ label, value, sub, tone = "text-cyan" }: { label: string; value: string; sub: string; tone?: string }) {
   return (
-    <div className="rounded-lg border border-line bg-white/[0.02] p-2">
+    <div className="rounded-lg border border-line bg-ink/[0.03] p-2">
       <p className="text-muted">{label}</p>
       <p className={`text-lg font-bold ${tone}`}>{value}</p>
       <p className="truncate text-[10px] text-muted">{sub}</p>
+    </div>
+  );
+}
+
+export function TaskManagerCompact() {
+  const [last, setLast] = useState<Resources | null>(null);
+  useRealtimeEvent(["system.resources"], (ev) => setLast(ev.payload as unknown as Resources));
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[13px] font-semibold">Administrador de tareas</h3>
+        <span className="font-mono text-[11px] text-muted">
+          {last ? `${last.cpu_count} núcleos · API ${fmtBytes(last.process_memory)}` : "esperando métricas…"}
+        </span>
+      </div>
+      <div className="mt-2.5 flex h-20 items-end gap-2" role="img" aria-label={last ? `CPU por núcleo: ${last.cpu_per_core.map((c) => `${c.toFixed(0)}%`).join(", ")}` : "Sin métricas"}>
+        {(last?.cpu_per_core ?? [0, 0, 0, 0]).map((c, i) => (
+          <div key={i} className="flex h-full flex-1 flex-col justify-end overflow-hidden rounded-lg bg-surface-2" title={`Núcleo ${i + 1}: ${c.toFixed(0)}%`}>
+            <div className="rounded-t-md bg-gradient-to-b from-cyan to-cyan/40 transition-[height] duration-700" style={{ height: `${Math.max(c, 4)}%` }} />
+          </div>
+        ))}
+      </div>
+      <p className="mt-2.5 text-xs text-muted">
+        Memoria del servidor · {last ? `${last.memory_percent.toFixed(0)}%` : "—"}
+        {last?.training_active && <span className="ml-2 font-semibold text-violet">entrenando</span>}
+      </p>
+      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-surface-2">
+        <div className="h-full rounded-full bg-gradient-to-r from-blue to-violet transition-[width] duration-700" style={{ width: `${last?.memory_percent ?? 0}%` }} />
+      </div>
     </div>
   );
 }

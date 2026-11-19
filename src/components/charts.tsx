@@ -4,11 +4,11 @@ import {
 import { fmtNumber, fmtPercent } from "../lib/format";
 import type { WeekPoint } from "../lib/types";
 
-const AXIS = { stroke: "#5f7ea3", fontSize: 11 };
-const GRID = "rgba(32,130,230,0.15)";
+const AXIS = { stroke: "var(--muted)", fontSize: 11 };
+const GRID = "var(--line)";
 const TOOLTIP = {
-  contentStyle: { background: "#0A1F3D", border: "1px solid rgba(32,130,230,0.4)", borderRadius: 10, fontSize: 12 },
-  labelStyle: { color: "#EAF3FF" },
+  contentStyle: { background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 10, fontSize: 12, color: "var(--ink)" },
+  labelStyle: { color: "var(--ink)" },
 };
 
 export function TrendChart({ data, height = 230 }: { data: WeekPoint[]; height?: number }) {
@@ -22,16 +22,16 @@ export function TrendChart({ data, height = 230 }: { data: WeekPoint[]; height?:
         <YAxis yAxisId="b" orientation="right" {...AXIS} />
         <Tooltip {...TOOLTIP} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line yAxisId="a" type="monotone" dataKey="active_students" name="Estudiantes activos" stroke="#20C8F5" strokeWidth={2.2} dot={false} />
-        <Line yAxisId="b" type="monotone" dataKey="hours" name="Horas" stroke="#8B4DFF" strokeWidth={2} dot={false} />
-        <Line yAxisId="b" type="monotone" dataKey="completions" name="Finalizaciones" stroke="#00BFA6" strokeWidth={2} dot={false} />
+        <Line yAxisId="a" type="monotone" dataKey="active_students" name="Estudiantes activos" stroke="var(--cyan)" strokeWidth={2.2} dot={false} />
+        <Line yAxisId="b" type="monotone" dataKey="hours" name="Horas" stroke="var(--violet)" strokeWidth={2} dot={false} />
+        <Line yAxisId="b" type="monotone" dataKey="completions" name="Finalizaciones" stroke="var(--teal)" strokeWidth={2} dot={false} />
       </LineChart>
     </ResponsiveContainer>
   );
 }
 
 const SEGMENT_COLOR: Record<string, string> = {
-  completado: "#20C8F5", en_progreso: "#8B4DFF", no_iniciado: "#5f7ea3", inactivo: "#FF5C7A",
+  completado: "var(--cyan)", en_progreso: "var(--primary)", no_iniciado: "var(--muted)", inactivo: "var(--danger)",
 };
 const SEGMENT_LABEL: Record<string, string> = {
   completado: "Completados", en_progreso: "En progreso", no_iniciado: "No iniciados", inactivo: "Inactivos",
@@ -78,8 +78,8 @@ export function LossChart({ history, height = 220 }: { history: { epoch: number;
         <YAxis {...AXIS} domain={["auto", "auto"]} />
         <Tooltip {...TOOLTIP} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line type="monotone" dataKey="train_loss" name="Loss entrenamiento" stroke="#20C8F5" strokeWidth={2} dot={false} isAnimationActive={false} />
-        <Line type="monotone" dataKey="val_loss" name="Loss validación" stroke="#8B4DFF" strokeWidth={2} dot={false} isAnimationActive={false} />
+        <Line type="monotone" dataKey="train_loss" name="Loss entrenamiento" stroke="var(--cyan)" strokeWidth={2} dot={false} isAnimationActive={false} />
+        <Line type="monotone" dataKey="val_loss" name="Loss validación" stroke="var(--violet)" strokeWidth={2} dot={false} isAnimationActive={false} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -94,8 +94,8 @@ export function ResourceChart({ points, height = 150 }: { points: { t: string; c
         <YAxis {...AXIS} domain={[0, 100]} unit="%" />
         <Tooltip {...TOOLTIP} formatter={(v: number) => `${v.toFixed(1)}%`} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Area type="monotone" dataKey="cpu" name="CPU" stroke="#20C8F5" fill="rgba(32,200,245,0.18)" isAnimationActive={false} />
-        <Area type="monotone" dataKey="mem" name="Memoria" stroke="#8B4DFF" fill="rgba(139,77,255,0.18)" isAnimationActive={false} />
+        <Area type="monotone" dataKey="cpu" name="CPU" stroke="var(--cyan)" fill="var(--cyan)" fillOpacity={0.18} isAnimationActive={false} />
+        <Area type="monotone" dataKey="mem" name="Memoria" stroke="var(--violet)" fill="var(--violet)" fillOpacity={0.18} isAnimationActive={false} />
       </AreaChart>
     </ResponsiveContainer>
   );

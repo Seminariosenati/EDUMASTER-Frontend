@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { themeColor, useTheme } from "../lib/theme";
 import type { Architecture } from "../lib/types";
 
 export type NetState = "detenido" | "en_cola" | "cargando_datos" | "entrenando" | "validando" | "publicado" | "inferencia" | "error";
@@ -42,7 +43,6 @@ interface Particle {
 
 const MAX_NODES = 9;
 const HEADS = ["Finalización", "Dominio", "Riesgo", "Recomendación"];
-const COLORS = { forward: "#20C8F5", backward: "#8B4DFF", validate: "#00BFA6", error: "#FF5C7A" };
 
 function sampleIndices(total: number, max: number) {
   if (total <= max) return Array.from({ length: total }, (_, i) => i);
@@ -64,14 +64,14 @@ function buildLayout(arch: Architecture, w: number, h: number) {
     return { name, label, nodes, hidden: total - idx.length, x };
   };
   const cfg = arch.config;
-  const entrada = place("entrada", "Entrada", layers.entrada.neurons, colX(0), 26, topH - 26);
+  const entrada = place("entrada", `Entrada · ${layers.entrada.neurons}`, layers.entrada.neurons, colX(0), 26, topH - 26);
   const seq = place("secuencia", `Secuencia · ${cfg.seq_len} sem.`, cfg.seq_len, colX(0), topH + 10, h - 30);
   columns.push(entrada, seq);
-  const denseCols = dense.map((l, i) => place(l.name, l.name.replace("_", " "), l.neurons, colX(i + 1), 26, topH - 26));
+  const denseCols = dense.map((l, i) => place(l.name, `Densa ${i + 1} · ${l.neurons}`, l.neurons, colX(i + 1), 26, topH - 26));
   columns.push(...denseCols);
   const gruX = denseCols.length ? (denseCols[0].x + denseCols[denseCols.length - 1].x) / 2 : colX(1);
-  const gru = place("gru", "GRU temporal", layers.gru.neurons, gruX, topH + 10, h - 30);
-  const fusion = place("fusion", "Fusión", layers.fusion.neurons, colX(nCols - 2), 22, h - 44);
+  const gru = place("gru", `GRU temporal · ${layers.gru.neurons}`, layers.gru.neurons, gruX, topH + 10, h - 30);
+  const fusion = place("fusion", `Fusión · ${layers.fusion.neurons}`, layers.fusion.neurons, colX(nCols - 2), 22, h - 44);
   const heads: Column = {
     name: "salida", label: "Salidas", hidden: 0, x: colX(nCols - 1),
     nodes: HEADS.map((_, i) => ({ x: colX(nCols - 1), y: 40 + ((h - 80) * i) / 3, layer: "salida", index: i, glow: 0 })),
@@ -94,6 +94,7 @@ function buildLayout(arch: Architecture, w: number, h: number) {
 export function NeuralNetworkCanvas({
   architecture, state, activations, paused = false, speed = 1, height = 340, selected, onSelect, compact,
 }: Props) {
+  const { theme } = useTheme();
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(600);
@@ -117,6 +118,7 @@ export function NeuralNetworkCanvas({
     canvas.current.width = width * dpr;
     canvas.current.height = height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const C = { cyan: themeColor("cyan"), violet: themeColor("violet"), teal: themeColor("teal"), danger: themeColor("danger"), edge: themeColor("edge"), ink: themeColor("ink"), muted: themeColor("muted") };
 
     const { columns, edges, maxStage } = layout;
     const byStage = new Map<number, Edge[]>();
@@ -151,7 +153,7 @@ export function NeuralNetworkCanvas({
       const animate = !s.paused && !reduced;
       const mode = s.state;
       const forward = mode === "entrenando" || mode === "validando" || mode === "inferencia" || mode === "cargando_datos";
-      const color = mode === "error" ? COLORS.error : mode === "validando" ? COLORS.validate : COLORS.forward;
+      const color = mode === "error" ? C.danger : mode === "validando" ? C.teal : C.cyan;
 
       if (animate && forward) {
         const rate = mode === "inferencia" ? 14 : mode === "cargando_datos" ? 3 : 9;
@@ -173,13 +175,15 @@ export function NeuralNetworkCanvas({
       ctx.lineWidth = 1;
       for (const e of edges) {
         const dim = s.selected && e.from.layer !== s.selected && e.to.layer !== s.selected;
-        ctx.strokeStyle = dim ? "rgba(32,130,230,0.04)" : "rgba(32,130,230,0.13)";
+        ctx.globalAlpha = dim ? 0.35 : 1;
+        ctx.strokeStyle = C.edge;
         ctx.beginPath();
         ctx.moveTo(e.from.x, e.from.y);
         ctx.lineTo(e.to.x, e.to.y);
         ctx.stroke();
       }
 
+      ctx.globalAlpha = 1;
       const next: Particle[] = [];
       for (const p of particles) {
         p.t += p.dir * dt * 1.6 * s.speed;
@@ -187,7 +191,7 @@ export function NeuralNetworkCanvas({
         const { from, to } = p.edge;
         const x = from.x + (to.x - from.x) * Math.min(Math.max(p.t, 0), 1);
         const y = from.y + (to.y - from.y) * Math.min(Math.max(p.t, 0), 1);
-        ctx.fillStyle = p.dir === 1 ? color : COLORS.backward;
+        ctx.fillStyle = p.dir === 1 ? color : C.violet;
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 8;
         ctx.beginPath();
@@ -210,21 +214,23 @@ export function NeuralNetworkCanvas({
           const base = intensity(n);
           const r = compact ? 4.5 : 6;
           const g = Math.min(1, base * 0.7 + n.glow);
-          ctx.fillStyle = col.name === "salida" ? `rgba(0,191,166,${0.35 + g * 0.65})` : col.name === "gru" || col.name === "secuencia" ? `rgba(139,77,255,${0.3 + g * 0.7})` : `rgba(32,200,245,${0.25 + g * 0.75})`;
+          ctx.fillStyle = col.name === "salida" ? C.teal : col.name === "gru" || col.name === "secuencia" ? C.violet : C.cyan;
+          ctx.globalAlpha = 0.3 + g * 0.7;
           ctx.shadowColor = ctx.fillStyle;
           ctx.shadowBlur = 6 + g * 12;
           ctx.beginPath();
           ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
           if (isSel) {
-            ctx.strokeStyle = "#fff";
+            ctx.strokeStyle = C.ink;
             ctx.beginPath();
             ctx.arc(n.x, n.y, r + 2.5, 0, Math.PI * 2);
             ctx.stroke();
           }
         }
-        ctx.fillStyle = isSel ? "#EAF3FF" : "#8BA7C9";
+        ctx.fillStyle = isSel ? C.ink : C.muted;
         ctx.font = `${compact ? 10 : 11}px Inter, system-ui, sans-serif`;
         ctx.textAlign = "center";
         const bottom = Math.max(...col.nodes.map((n) => n.y));
@@ -244,7 +250,7 @@ export function NeuralNetworkCanvas({
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [layout, width, height, reduced, compact]);
+  }, [layout, width, height, reduced, compact, theme]);
 
   const onClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onSelect) return;

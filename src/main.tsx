@@ -6,6 +6,7 @@ import { AppShell } from "./components/AppShell";
 import { Skeleton } from "./components/ui";
 import "./index.css";
 import { AuthProvider, useAuth } from "./lib/auth";
+import { ThemeProvider } from "./lib/theme";
 import type { Role } from "./lib/types";
 import { Courses, CourseDetail, LearningPaths, Students } from "./pages/Academic";
 import { Dashboard } from "./pages/Dashboard";
@@ -30,6 +31,7 @@ const STAFF: Role[] = ["superadmin", "admin", "coordinador", "analista"];
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
@@ -55,5 +57,6 @@ createRoot(document.getElementById("root")!).render(
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

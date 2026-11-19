@@ -27,6 +27,7 @@ const EVENT_TYPES = [
   "model.training.failed",
   "model.deployed",
   "system.resources",
+  "model.inference.live",
 ];
 
 const INVALIDATIONS: Record<string, string[][]> = {

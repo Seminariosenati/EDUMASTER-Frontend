@@ -138,7 +138,7 @@ export function NeuralLab() {
             {live.state === "entrenando" && (
               <div className="mt-2">
                 <div className="flex justify-between text-xs text-muted"><span>Época {live.epoch} de {live.epochs}</span><span>loss val {live.history.at(-1)?.val_loss.toFixed(4)}</span></div>
-                <div className="mt-1 h-1.5 rounded-full bg-white/5"><div className="h-full rounded-full bg-violet transition-all" style={{ width: `${(live.epoch / Math.max(live.epochs, 1)) * 100}%` }} /></div>
+                <div className="mt-1 h-1.5 rounded-full bg-ink/5"><div className="h-full rounded-full bg-violet transition-all" style={{ width: `${(live.epoch / Math.max(live.epochs, 1)) * 100}%` }} /></div>
               </div>
             )}
             {live.state === "error" && <p className="mt-2 text-sm text-danger">El entrenamiento falló: {live.error}</p>}
@@ -270,7 +270,7 @@ export function NeuralLab() {
 
 function Dt({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-line bg-white/[0.02] p-2">
+    <div className="rounded-lg border border-line bg-ink/[0.03] p-2">
       <dt className="text-muted">{label}</dt>
       <dd className="font-semibold tabular-nums">{value}</dd>
     </div>
