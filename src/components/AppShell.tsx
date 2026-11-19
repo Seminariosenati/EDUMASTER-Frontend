@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Award, BarChart3, Bell, BookOpen, BrainCircuit, ClipboardList, GraduationCap, LayoutDashboard, LogOut, Map, Menu,
-  ScrollText, Search, Settings, Sparkles, X,
+  PanelLeftClose, PanelLeftOpen, ScrollText, Search, Settings, Sparkles, X,
 } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -43,7 +43,17 @@ export function AppShell() {
   );
 }
 
-function RailLink({ item, onClick }: { item: NavItem; onClick: () => void }) {
+const RAIL_KEY = "edumaster.rail";
+
+function readExpanded() {
+  try {
+    return localStorage.getItem(RAIL_KEY) === "expanded";
+  } catch {
+    return false;
+  }
+}
+
+function RailLink({ item, onClick, expanded }: { item: NavItem; onClick: () => void; expanded: boolean }) {
   return (
     <NavLink
       to={item.to}
@@ -52,11 +62,11 @@ function RailLink({ item, onClick }: { item: NavItem; onClick: () => void }) {
       title={item.label}
       aria-label={item.label}
       className={({ isActive }) =>
-        `flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition lg:w-11 lg:justify-center lg:px-0 ${isActive ? "bg-blue text-white shadow-[0_0_18px_-4px_var(--primary)]" : "text-muted hover:bg-ink/5 hover:text-ink"}`
+        `flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition ${expanded ? "lg:w-full" : "lg:w-11 lg:justify-center lg:px-0"} ${isActive ? "bg-blue text-white shadow-[0_0_18px_-4px_var(--primary)]" : "text-muted hover:bg-ink/5 hover:text-ink"}`
       }
     >
       {item.icon}
-      <span className="lg:hidden">{item.label}</span>
+      <span className={expanded ? "truncate" : "lg:hidden"}>{item.label}</span>
     </NavLink>
   );
 }
@@ -64,6 +74,17 @@ function RailLink({ item, onClick }: { item: NavItem; onClick: () => void }) {
 function Shell() {
   const { me, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(readExpanded);
+  const toggleRail = () => {
+    setExpanded((e) => {
+      try {
+        localStorage.setItem(RAIL_KEY, e ? "collapsed" : "expanded");
+      } catch {
+        /* sin almacenamiento: vale solo para esta pestaña */
+      }
+      return !e;
+    });
+  };
   const [q, setQ] = useState("");
   const navigate = useNavigate();
   const items = NAV.filter((n) => !n.roles || (me && n.roles.includes(me.role)));
@@ -78,23 +99,31 @@ function Shell() {
     <div className="flex min-h-full">
       {open && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-2 border-r border-line bg-surface-2 p-3 transition-transform lg:sticky lg:top-0 lg:h-screen lg:w-[76px] lg:translate-x-0 lg:items-center ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-2 border-r border-line bg-surface-2 p-3 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${expanded ? "lg:w-60" : "lg:w-[76px] lg:items-center"} ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="mb-2 flex items-center justify-between lg:justify-center">
+        <div className={`mb-2 flex items-center justify-between ${expanded ? "" : "lg:justify-center"}`}>
           <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-blue text-white" aria-hidden>
             <GraduationCap size={20} />
           </span>
-          <span className="ml-2 mr-auto text-lg font-bold lg:hidden">EduMaster<span className="text-cyan">.ai</span></span>
+          <span className={`ml-2 mr-auto text-lg font-bold ${expanded ? "" : "lg:hidden"}`}>EduMaster<span className="text-cyan">.ai</span></span>
           <button className="lg:hidden" onClick={() => setOpen(false)} aria-label="Cerrar menú"><X size={18} /></button>
         </div>
         <nav aria-label="Principal" className="flex flex-col gap-1.5">
-          {items.map((n) => <RailLink key={n.to} item={n} onClick={() => setOpen(false)} />)}
+          {items.map((n) => <RailLink key={n.to} item={n} expanded={expanded} onClick={() => setOpen(false)} />)}
         </nav>
-        {showSettings && (
-          <nav aria-label="Configuración" className="mt-auto">
-            <RailLink item={SETTINGS} onClick={() => setOpen(false)} />
-          </nav>
-        )}
+        <div className={`mt-auto flex flex-col gap-1.5 ${expanded ? "" : "lg:items-center"}`}>
+          {showSettings && (
+            <nav aria-label="Configuración">
+              <RailLink item={SETTINGS} expanded={expanded} onClick={() => setOpen(false)} />
+            </nav>
+          )}
+          <button type="button" onClick={toggleRail} aria-expanded={expanded}
+            aria-label={expanded ? "Contraer menú" : "Expandir menú"} title={expanded ? "Contraer menú" : "Expandir menú"}
+            className={`hidden h-11 items-center gap-3 rounded-xl px-3 text-sm text-muted transition hover:bg-ink/5 hover:text-ink lg:flex ${expanded ? "w-full" : "w-11 justify-center px-0"}`}>
+            {expanded ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+            {expanded && <span>Contraer menú</span>}
+          </button>
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

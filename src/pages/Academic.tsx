@@ -6,6 +6,7 @@ import { Badge, ErrorState, Field, Modal, Note, PageHeader, Panel, QueryState } 
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { fmtDate, fmtNumber, fmtPercent } from "../lib/format";
+import { StudentAI } from "./StudentAI";
 
 interface Course {
   id: string;
@@ -83,7 +84,7 @@ export function Courses() {
         actions={can("admin", "superadmin", "coordinador") && <button className="btn btn-primary" onClick={() => setOpen(true)}><Plus size={15} /> Nuevo curso</button>} />
       <div className="mb-4 flex flex-wrap gap-2">
         <input className="input max-w-xs" placeholder="Buscar por nombre o código" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <select className="input max-w-[180px]" value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Nivel">
+        <select className="input max-w-[210px]" value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Nivel">
           <option value="">Todos los niveles</option><option value="basico">Básico</option><option value="intermedio">Intermedio</option><option value="avanzado">Avanzado</option>
         </select>
         {me?.role === "estudiante" && (
@@ -293,27 +294,36 @@ export function Students() {
   const [q, setQ] = useState("");
   const list = useQuery({
     queryKey: ["students", q],
-    queryFn: () => api<{ total: number; items: { id: string; full_name: string; external_code: string; region: string; cohort: string }[] }>(`/students?limit=50&q=${encodeURIComponent(q)}`),
+    queryFn: () => api<{ total: number; items: { id: string; full_name: string; external_code: string; region: string; cohort: string }[] }>(`/students?limit=60&q=${encodeURIComponent(q)}`),
   });
   const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => {
+    if (!selected && list.data?.items.length) setSelected(list.data.items[0].id);
+  }, [list.data, selected]);
   const progress = useQuery({
     queryKey: ["student-progress", selected],
-    queryFn: () => api<{ student: { full_name: string }; courses: { course_id: string; title: string; status: string; progress: number; average: number; last_activity: string | null }[] }>(`/students/${selected}/progress`),
+    queryFn: () => api<{ student: { full_name: string; external_code: string; region: string; cohort: string }; courses: { course_id: string; title: string; status: string; progress: number; average: number; attempts: number; last_activity: string | null }[] }>(`/students/${selected}/progress`),
     enabled: !!selected,
   });
+  const courseTitles = Object.fromEntries((progress.data?.courses ?? []).map((c) => [c.course_id, c.title]));
   return (
     <div>
-      <PageHeader title="Estudiantes" subtitle="Seguimiento académico según permisos" />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <PageHeader title="Estudiantes" subtitle="Seguimiento académico y análisis de IA individual según permisos" />
+      <div className="grid items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <Panel title={`Listado (${list.data?.total ?? "…"})`} icon={<Users size={16} />}>
-          <input className="input mb-3" placeholder="Buscar" value={q} onChange={(e) => setQ(e.target.value)} />
+          <label className="mb-3 block">
+            <span className="sr-only">Buscar estudiante</span>
+            <input className="input" placeholder="Buscar por nombre o código" value={q} onChange={(e) => setQ(e.target.value)} />
+          </label>
           <QueryState q={list} empty={(d) => !d.items.length}>
             {(d) => (
-              <ul className="max-h-[520px] space-y-1 overflow-y-auto">
+              <ul className="max-h-[70vh] space-y-1 overflow-y-auto pr-1">
                 {d.items.map((s) => (
                   <li key={s.id}>
-                    <button className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-ink/5 ${selected === s.id ? "bg-blue/20" : ""}`} onClick={() => setSelected(s.id)}>
-                      {s.full_name} <span className="text-xs text-muted">· {s.external_code} · {s.region} · {s.cohort}</span>
+                    <button aria-current={selected === s.id} onClick={() => setSelected(s.id)}
+                      className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${selected === s.id ? "border-violet/50 bg-blue/15" : "border-transparent hover:bg-ink/5"}`}>
+                      <span className="block font-medium">{s.full_name}</span>
+                      <span className="block text-xs text-muted">{s.external_code} · {s.region} · {s.cohort}</span>
                     </button>
                   </li>
                 ))}
@@ -321,23 +331,34 @@ export function Students() {
             )}
           </QueryState>
         </Panel>
-        <Panel title={progress.data?.student.full_name ?? "Progreso"} icon={<BookOpen size={16} />}>
-          {!selected ? <p className="text-sm text-muted">Selecciona un estudiante.</p> : (
-            <QueryState q={progress}>
-              {(p) => (
-                <ul className="space-y-3">
-                  {p.courses.map((c) => (
-                    <li key={c.course_id}>
-                      <div className="flex justify-between text-sm"><span>{c.title}</span><Badge tone={c.status === "completado" ? "teal" : c.status === "inactivo" ? "danger" : "blue"}>{c.status}</Badge></div>
-                      <div className="mt-1 h-1.5 rounded-full bg-ink/5"><div className="h-full rounded-full bg-cyan" style={{ width: `${c.progress * 100}%` }} /></div>
-                      <p className="mt-0.5 text-[11px] text-muted">Promedio {c.average} · última actividad {fmtDate(c.last_activity)}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </QueryState>
+        <div className="min-w-0 space-y-4">
+          {!selected ? <Panel><p className="text-sm text-muted">Selecciona un estudiante.</p></Panel> : (
+            <>
+              <Panel title={progress.data?.student.full_name ?? "Progreso"} icon={<BookOpen size={16} />}
+                subtitle={progress.data ? `${progress.data.student.external_code} · ${progress.data.student.region} · cohorte ${progress.data.student.cohort}` : undefined}>
+                <QueryState q={progress} empty={(p) => !p.courses.length}>
+                  {(p) => (
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {p.courses.map((c) => (
+                        <div key={c.course_id} className="rounded-xl border border-line bg-surface-2 p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold">{c.title}</p>
+                            <Badge tone={c.status === "completado" ? "teal" : c.status === "inactivo" ? "danger" : "blue"}>{c.status}</Badge>
+                          </div>
+                          <div className="mt-2 flex justify-between text-xs text-muted"><span>Avance</span><span className="tabular-nums">{fmtPercent(c.progress)}</span></div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface"><div className="h-full rounded-full bg-gradient-to-r from-blue to-cyan" style={{ width: `${c.progress * 100}%` }} /></div>
+                          <p className="mt-2 text-xs text-muted">Promedio <b className="text-ink">{c.attempts ? c.average : "—"}</b> · {c.attempts} evaluaciones</p>
+                          <p className="text-xs text-muted">Última actividad {fmtDate(c.last_activity)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </QueryState>
+              </Panel>
+              <StudentAI studentId={selected} courseTitles={courseTitles} />
+            </>
           )}
-        </Panel>
+        </div>
       </div>
     </div>
   );

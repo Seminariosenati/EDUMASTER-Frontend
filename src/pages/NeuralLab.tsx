@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, BrainCircuit, Cpu, FlaskConical, Gauge, Pause, Play, Rocket, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { LossChart } from "../components/charts";
@@ -43,6 +43,15 @@ interface Run {
   error: string | null;
 }
 
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return v;
+}
+
 const parseHidden = (s: string) => s.split(/[,\s]+/).map(Number).filter((n) => Number.isInteger(n) && n > 0);
 
 export function NeuralLab() {
@@ -74,9 +83,11 @@ export function NeuralLab() {
     }
   }, [arch.data]);
 
+  const previewKey = useDebounced(JSON.stringify({ tab_hidden: hidden, gru_hidden: gru, fusion_hidden: fusion }), 350);
   const preview = useQuery({
-    queryKey: ["arch-preview", hidden.join("-"), gru, fusion],
-    queryFn: () => api<Architecture>("/ml/architecture/preview", { method: "POST", json: { tab_hidden: hidden, gru_hidden: gru, fusion_hidden: fusion } }),
+    queryKey: ["arch-preview", previewKey],
+    queryFn: () => api<Architecture>("/ml/architecture/preview", { method: "POST", json: JSON.parse(previewKey) }),
+    placeholderData: keepPreviousData,
     enabled: hidden.length > 0,
   });
 
@@ -191,7 +202,7 @@ export function NeuralLab() {
         ) : <Skeleton className="h-40" />}
       </Panel>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid items-start gap-4 xl:grid-cols-2">
         <Panel icon={<FlaskConical size={16} />} title="Experimentar con neuronas" subtitle="Compara memoria antes de entrenar">
           <div className="grid gap-3 sm:grid-cols-4">
             <Field label="Capas densas (neuronas)" hint="Ej: 128, 64, 32"><input className="input" value={tabHidden} onChange={(e) => setTabHidden(e.target.value)} /></Field>
@@ -223,7 +234,7 @@ export function NeuralLab() {
         </Panel>
 
         <Panel icon={<Activity size={16} />} title="Curva de entrenamiento" subtitle={live.history.length ? "En vivo desde el worker" : "Último entrenamiento completado"}>
-          {history.length ? <LossChart history={history} /> : <EmptyState message="Sin historial de entrenamiento todavía" />}
+          {history.length ? <LossChart history={history} height={320} /> : <EmptyState message="Sin historial de entrenamiento todavía" />}
           <Note>La pérdida es multitarea: L = λ1·BCE(finalización) + λ2·CE(dominio) + λ3·BCE(riesgo) + λ4·ListNet(recomendación). Se detiene antes (early stopping) si la validación deja de mejorar.</Note>
         </Panel>
       </div>

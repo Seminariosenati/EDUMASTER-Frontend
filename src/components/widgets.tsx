@@ -64,7 +64,10 @@ export function RegionMap({ regions, limit = 8 }: { regions: { region: string; s
 
 const REC_ICON: Record<string, string> = { acompanamiento: "text-danger", completar: "text-teal", ruta: "text-cyan", refuerzo: "text-violet" };
 
-export function RecommendationList({ items, compact, showStudent }: { items: Recommendation[]; compact?: boolean; showStudent?: boolean }) {
+const TYPE_LABEL: Record<string, string> = { acompanamiento: "Acompañamiento", completar: "Completar", ruta: "Siguiente curso", refuerzo: "Refuerzo" };
+const TYPE_BAR: Record<string, string> = { acompanamiento: "bg-danger", completar: "bg-teal", ruta: "bg-cyan", refuerzo: "bg-violet" };
+
+export function RecommendationList({ items, compact, showStudent, grid }: { items: Recommendation[]; compact?: boolean; showStudent?: boolean; grid?: boolean }) {
   const qc = useQueryClient();
   const fb = useMutation({
     mutationFn: ({ id, status, useful }: { id: string; status?: string; useful?: boolean }) =>
@@ -73,28 +76,33 @@ export function RecommendationList({ items, compact, showStudent }: { items: Rec
   });
   if (!items.length) return <EmptyState message="No hay recomendaciones vigentes" icon={<Sparkles size={22} />} />;
   return (
-    <ul className="space-y-2">
+    <ul className={grid ? "grid gap-3 sm:grid-cols-2 2xl:grid-cols-3" : "space-y-2"}>
       {items.map((r) => (
-        <li key={r.id} className="rounded-lg border border-line bg-ink/[0.03] p-2.5">
+        <li key={r.id} className={`relative flex flex-col overflow-hidden rounded-xl border border-line bg-surface-2 ${grid ? "p-4 pl-5" : "p-2.5"}`}>
+          {grid && <span className={`absolute inset-y-0 left-0 w-1 ${TYPE_BAR[r.type] ?? "bg-cyan"}`} aria-hidden />}
           <div className="flex items-start gap-2">
             <Sparkles size={15} className={`mt-0.5 shrink-0 ${REC_ICON[r.type] ?? "text-cyan"}`} />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{r.title}</p>
-              {showStudent && <p className="text-[11px] text-cyan">{r.student.full_name}</p>}
-              {!compact && <p className="mt-0.5 text-xs text-muted">{r.rationale}</p>}
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <Badge tone={r.status === "nueva" ? "blue" : r.status === "descartada" ? "muted" : "teal"}>{r.status}</Badge>
-                <Badge tone="muted">impacto {r.impact}</Badge>
-                {r.skill && <Badge tone="violet">{r.skill.name}</Badge>}
-              </div>
+              {grid && <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{TYPE_LABEL[r.type] ?? r.type}</p>}
+              <p className="text-sm font-semibold">{r.title}</p>
+              {showStudent && <p className="text-xs text-cyan">{r.student.full_name}</p>}
             </div>
           </div>
+          {!compact && <p className={`mt-2 text-xs leading-relaxed text-muted ${grid ? "flex-1" : ""}`}>{r.rationale}</p>}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <Badge tone={r.status === "nueva" ? "blue" : r.status === "descartada" ? "muted" : "teal"}>{r.status}</Badge>
+            <Badge tone="muted">impacto {r.impact}</Badge>
+            {r.skill && <Badge tone="violet">{r.skill.name}</Badge>}
+            {r.useful != null && <Badge tone={r.useful ? "teal" : "muted"}>{r.useful ? "útil" : "no útil"}</Badge>}
+          </div>
           {!compact && r.status === "nueva" && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <button className="btn btn-primary px-2 py-1 text-xs" onClick={() => fb.mutate({ id: r.id, status: "aceptada" })}><CheckCircle2 size={13} /> Aceptar</button>
-              <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => fb.mutate({ id: r.id, status: "descartada" })}><X size={13} /> Descartar</button>
-              <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => fb.mutate({ id: r.id, useful: true })} title="Útil"><ThumbsUp size={13} /></button>
-              <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => fb.mutate({ id: r.id, useful: false })} title="No útil"><ThumbsDown size={13} /></button>
+            <div className={`mt-3 flex flex-wrap gap-1.5 ${grid ? "border-t border-line pt-3" : ""}`}>
+              <button className="btn btn-primary px-2.5 py-1.5 text-xs" onClick={() => fb.mutate({ id: r.id, status: "aceptada" })}><CheckCircle2 size={13} /> Aceptar</button>
+              <button className="btn btn-ghost px-2.5 py-1.5 text-xs" onClick={() => fb.mutate({ id: r.id, status: "descartada" })}><X size={13} /> Descartar</button>
+              <span className="ml-auto flex gap-1.5">
+                <button className="btn btn-ghost px-2 py-1.5 text-xs" onClick={() => fb.mutate({ id: r.id, useful: true })} aria-label="Marcar como útil" title="Útil"><ThumbsUp size={13} /></button>
+                <button className="btn btn-ghost px-2 py-1.5 text-xs" onClick={() => fb.mutate({ id: r.id, useful: false })} aria-label="Marcar como no útil" title="No útil"><ThumbsDown size={13} /></button>
+              </span>
             </div>
           )}
         </li>

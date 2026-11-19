@@ -36,7 +36,7 @@ export function Analytics() {
           <option value="">Todos los cursos</option>
           {courses.data?.items.map((c) => <option key={c.id} value={c.id}>{c.code} · {c.title}</option>)}
         </select>
-        <select className="input max-w-[160px]" value={cohort} onChange={(e) => setCohort(e.target.value)} aria-label="Cohorte">
+        <select className="input max-w-[210px]" value={cohort} onChange={(e) => setCohort(e.target.value)} aria-label="Cohorte">
           <option value="">Todas las cohortes</option><option value="2026-A">2026-A</option><option value="2026-B">2026-B</option>
         </select>
       </div>
@@ -113,7 +113,7 @@ export function Recommendations() {
         ))}
       </div>
       <Panel icon={<Sparkles size={16} />} title="Bandeja">
-        <QueryState q={q}>{(d) => <RecommendationList items={d} showStudent={me?.role !== "estudiante"} />}</QueryState>
+        <QueryState q={q}>{(d) => <RecommendationList items={d} grid showStudent={me?.role !== "estudiante"} />}</QueryState>
       </Panel>
     </div>
   );

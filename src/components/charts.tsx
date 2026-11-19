@@ -9,6 +9,8 @@ const GRID = "var(--line)";
 const TOOLTIP = {
   contentStyle: { background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 10, fontSize: 12, color: "var(--ink)" },
   labelStyle: { color: "var(--ink)" },
+  itemStyle: { color: "var(--ink)" },
+  wrapperStyle: { zIndex: 20 },
 };
 
 export function TrendChart({ data, height = 230 }: { data: WeekPoint[]; height?: number }) {
