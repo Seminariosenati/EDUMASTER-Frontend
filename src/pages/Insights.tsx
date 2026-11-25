@@ -96,6 +96,7 @@ const STATUS_TABS = [
   { key: "aceptada", label: "Aceptadas" },
   { key: "descartada", label: "Descartadas" },
   { key: "completada", label: "Completadas" },
+  { key: "expirada", label: "Expiradas" },
   { key: "", label: "Todas" },
 ];
 
@@ -104,7 +105,14 @@ export function Recommendations() {
   const qc = useQueryClient();
   const [status, setStatus] = useState("nueva");
   const [type, setType] = useState<string | null>(null);
-  const q = useQuery({ queryKey: ["recommendations", "all"], queryFn: () => api<Recommendation[]>("/recommendations?limit=200") });
+  const q = useQuery({ queryKey: ["recommendations", "all"], queryFn: () => api<Recommendation[]>("/recommendations?limit=1000") });
+  const [notice, setNotice] = useState<string | null>(null);
+  const staffView = can(...STAFF, "docente", "ml_engineer");
+  const metrics = useQuery({
+    queryKey: ["recommendations", "metrics"],
+    queryFn: () => api<{ total: number; revisadas: number; tasa_aceptacion: number | null; tasa_utilidad: number | null; valoradas: number; expiradas: number; expira_en_dias: number }>("/recommendations/metrics"),
+    enabled: staffView,
+  });
   const gen = useMutation({
     mutationFn: () => api<{ students: number; created: number }>("/recommendations/generate", { method: "POST", json: {} }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["recommendations"] }),
@@ -121,6 +129,20 @@ export function Recommendations() {
           <button className="btn btn-primary" disabled={gen.isPending} onClick={() => gen.mutate()}><RefreshCw size={15} className={gen.isPending ? "animate-spin" : ""} /> Generar con el modelo vigente</button>
         )} />
       {gen.data && <p role="status" className="text-sm text-teal">Se evaluaron {gen.data.students} estudiantes y se crearon {gen.data.created} recomendaciones nuevas.</p>}
+      {notice && (
+        <p role="status" className="flex items-center gap-2 rounded-[10px] border border-teal/40 bg-teal/10 px-3 py-2 text-sm">
+          <span className="font-semibold text-teal">Acción realizada:</span> {notice}
+          <button className="ml-auto text-xs text-muted hover:text-ink" onClick={() => setNotice(null)}>Cerrar</button>
+        </p>
+      )}
+      {staffView && metrics.data && (
+        <section className="panel grid grid-cols-2 gap-px overflow-hidden !bg-line md:grid-cols-4" aria-label="Métricas de recomendaciones">
+          <Metric label="Tasa de aceptación" value={fmtPercent(metrics.data.tasa_aceptacion)} sub={`${metrics.data.revisadas} revisadas`} tone="text-teal" />
+          <Metric label="Marcadas como útiles" value={fmtPercent(metrics.data.tasa_utilidad)} sub={`${metrics.data.valoradas} valoradas`} tone="text-violet" />
+          <Metric label="Total generadas" value={String(metrics.data.total)} sub="por el modelo vigente" tone="text-ink" />
+          <Metric label="Expiradas" value={String(metrics.data.expiradas)} sub={`sin revisar en ${metrics.data.expira_en_dias} días`} tone="text-muted" />
+        </section>
+      )}
       <section className="panel overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-4">
           <div role="tablist" aria-label="Estado" className="-mb-px flex flex-wrap">
@@ -140,8 +162,18 @@ export function Recommendations() {
             ))}
           </div>
         </div>
-        <QueryState q={q} skeleton="h-64">{() => <RecommendationTable items={shown} showStudent={me?.role !== "estudiante"} />}</QueryState>
+        <QueryState q={q} skeleton="h-64">{() => <RecommendationTable items={shown} showStudent={me?.role !== "estudiante"} onAction={(m) => { setNotice(m); metrics.refetch(); }} />}</QueryState>
       </section>
+    </div>
+  );
+}
+
+function Metric({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: string }) {
+  return (
+    <div className="bg-surface p-4">
+      <p className="text-xs text-muted">{label}</p>
+      <p className={`mt-1 text-2xl font-bold tabular-nums ${tone}`}>{value}</p>
+      <p className="text-xs text-muted">{sub}</p>
     </div>
   );
 }

@@ -35,11 +35,17 @@ export function Dashboard() {
   const { me } = useAuth();
   const isStudent = me?.role === "estudiante";
   const [days, setDays] = useState(30);
-  const summary = useQuery({ queryKey: ["summary", days], queryFn: () => api<Summary>(`/dashboard/summary?days=${days}`) });
-  const progress = useQuery({ queryKey: ["progress", 12], queryFn: () => api<WeekPoint[]>("/analytics/progress?weeks=12") });
-  const completion = useQuery({ queryKey: ["completion"], queryFn: () => api<{ total: number; segments: { key: string; count: number; share: number }[] }>("/analytics/completion") });
-  const regions = useQuery({ queryKey: ["regions"], queryFn: () => api<{ region: string; students: number; active_30d: number; completion_rate: number }[]>("/analytics/regions") });
-  const skills = useQuery({ queryKey: ["skills"], queryFn: () => api<{ levels: string[]; skills: SkillRow[] }>("/analytics/skill-mastery") });
+  const [courseId, setCourseId] = useState("");
+  const [cohort, setCohort] = useState("");
+  const f = `course_id=${courseId}&cohort=${cohort}`;
+  const courses = useQuery({ queryKey: ["courses", "filter"], queryFn: () => api<{ items: { id: string; code: string; title: string }[] }>("/courses?limit=200"), enabled: !isStudent });
+  const summary = useQuery({ queryKey: ["summary", days, f], queryFn: () => api<Summary>(`/dashboard/summary?days=${days}&${f}`) });
+  const progress = useQuery({ queryKey: ["progress", 12, f], queryFn: () => api<WeekPoint[]>(`/analytics/progress?weeks=12&${f}`) });
+  const completion = useQuery({ queryKey: ["completion", f], queryFn: () => api<{ total: number; segments: { key: string; count: number; share: number }[] }>(`/analytics/completion?${f}`) });
+  const regions = useQuery({ queryKey: ["regions", f], queryFn: () => api<{ region: string; students: number; active_30d: number; completion_rate: number }[]>(`/analytics/regions?${f}`) });
+  const skills = useQuery({ queryKey: ["skills", f], queryFn: () => api<{ levels: string[]; skills: SkillRow[] }>(`/analytics/skill-mastery?${f}`) });
+  const filtered = !!(courseId || cohort);
+  const courseName = courses.data?.items.find((c) => c.id === courseId)?.title;
   const recs = useQuery({ queryKey: ["recommendations", "dash"], queryFn: () => api<Recommendation[]>("/recommendations?status=nueva&limit=40") });
   const activity = useQuery({ queryKey: ["activity"], queryFn: () => api<ActivityItem[]>("/activity?limit=6") });
   const arch = useQuery({ queryKey: ["architecture", "active"], queryFn: () => api<Architecture>("/ml/models/active/architecture"), retry: false });
@@ -66,11 +72,25 @@ export function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Centro de mando</h1>
           <p className="mt-1 text-sm text-muted">
-            Últimos {days} días · actualizado {summary.data ? timeAgo(summary.data.generated_at) : "…"}
+            Últimos {days} días{courseName ? ` · ${courseName}` : ""}{cohort ? ` · cohorte ${cohort}` : ""} · actualizado {summary.data ? timeAgo(summary.data.generated_at) : "…"}
             {summary.data?.is_demo && <> · <b className="font-semibold text-ink">datos DEMO sintéticos</b></>}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {!isStudent && (
+            <>
+              <label className="sr-only" htmlFor="f-course">Curso</label>
+              <select id="f-course" className="input h-[34px] w-auto max-w-[220px] py-0 text-xs" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+                <option value="">Todos los cursos</option>
+                {courses.data?.items.map((c) => <option key={c.id} value={c.id}>{c.code} · {c.title}</option>)}
+              </select>
+              <label className="sr-only" htmlFor="f-cohort">Cohorte</label>
+              <select id="f-cohort" className="input h-[34px] w-auto py-0 text-xs" value={cohort} onChange={(e) => setCohort(e.target.value)}>
+                <option value="">Todas las cohortes</option><option value="2026-A">2026-A</option><option value="2026-B">2026-B</option>
+              </select>
+              {filtered && <button className="text-xs font-semibold text-violet hover:underline" onClick={() => { setCourseId(""); setCohort(""); }}>Limpiar</button>}
+            </>
+          )}
           <div role="group" aria-label="Periodo" className="flex overflow-hidden rounded-[10px] border border-line text-xs font-semibold">
             {PERIODS.map((d) => (
               <button key={d} type="button" aria-pressed={days === d} onClick={() => setDays(d)}

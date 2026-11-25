@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  Award, BarChart3, Bell, BookOpen, BrainCircuit, ClipboardList, GraduationCap, LayoutDashboard, LogOut, Map, Menu,
+  Award, BarChart3, Bell, BookOpen, BrainCircuit, ClipboardCheck, ClipboardList, GraduationCap, LayoutDashboard, LogOut, Map, Menu,
   PanelLeftClose, PanelLeftOpen, ScrollText, Search, Settings, Sparkles, X,
 } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -24,6 +24,7 @@ const NAV: NavItem[] = [
   { to: "/", label: "Resumen", icon: <LayoutDashboard size={20} /> },
   { to: "/rutas", label: "Planes de aprendizaje", icon: <Map size={20} /> },
   { to: "/cursos", label: "Cursos", icon: <BookOpen size={20} /> },
+  { to: "/evaluaciones", label: "Evaluaciones", icon: <ClipboardCheck size={20} />, roles: [...STAFF, "docente", "estudiante"] },
   { to: "/analisis", label: "Análisis", icon: <BarChart3 size={20} />, roles: [...STAFF, "docente", "auditor"] },
   { to: "/ia", label: "IA · Red neuronal", icon: <BrainCircuit size={20} /> },
   { to: "/recomendaciones", label: "Recomendaciones", icon: <Sparkles size={20} /> },

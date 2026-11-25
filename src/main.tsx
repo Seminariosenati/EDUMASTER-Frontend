@@ -10,6 +10,7 @@ import { ThemeProvider } from "./lib/theme";
 import type { Role } from "./lib/types";
 import { Courses, CourseDetail, LearningPaths, Students } from "./pages/Academic";
 import { Dashboard } from "./pages/Dashboard";
+import { EvaluationDetail, Evaluations } from "./pages/Evaluations";
 import { Audit, Certificates, UsersPage, Verify } from "./pages/Governance";
 import { Analytics, Recommendations } from "./pages/Insights";
 import { Login } from "./pages/Login";
@@ -44,6 +45,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="rutas" element={<LearningPaths />} />
               <Route path="cursos" element={<Courses />} />
               <Route path="cursos/:id" element={<CourseDetail />} />
+              <Route path="evaluaciones" element={<Evaluations />} />
+              <Route path="evaluaciones/:id" element={<EvaluationDetail />} />
               <Route path="analisis" element={<Protected roles={[...STAFF, "docente", "auditor"]}><Analytics /></Protected>} />
               <Route path="ia" element={<NeuralLab />} />
               <Route path="recomendaciones" element={<Recommendations />} />

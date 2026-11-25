@@ -138,12 +138,16 @@ export function PriorityList({ items, showStudent, limit = 3 }: { items: Recomme
   );
 }
 
-export function RecommendationTable({ items, showStudent }: { items: Recommendation[]; showStudent?: boolean }) {
+export function RecommendationTable({ items, showStudent, onAction }: { items: Recommendation[]; showStudent?: boolean; onAction?: (msg: string) => void }) {
   const qc = useQueryClient();
   const fb = useMutation({
     mutationFn: ({ id, status, useful }: { id: string; status?: string; useful?: boolean }) =>
-      api(`/recommendations/${id}/feedback`, { method: "POST", json: { status, useful } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["recommendations"] }),
+      api<{ action: string | null }>(`/recommendations/${id}/feedback`, { method: "POST", json: { status, useful } }),
+    onSuccess: (res) => {
+      if (res.action) onAction?.(res.action);
+      qc.invalidateQueries({ queryKey: ["recommendations"] });
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
   if (!items.length) return <div className="p-6"><EmptyState message="No hay recomendaciones con estos filtros" icon={<Sparkles size={22} />} /></div>;
   return (
@@ -178,7 +182,7 @@ export function RecommendationTable({ items, showStudent }: { items: Recommendat
                     <button className="btn btn-ghost px-2 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, useful: true })} aria-label="Marcar como útil" title="Útil"><ThumbsUp size={13} /></button>
                     <button className="btn btn-ghost px-2 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, useful: false })} aria-label="Marcar como no útil" title="No útil"><ThumbsDown size={13} /></button>
                   </span>
-                ) : <Badge tone={r.status === "descartada" ? "muted" : "teal"}>{r.status}</Badge>}
+                ) : <Badge tone={r.status === "descartada" || r.status === "expirada" ? "muted" : "teal"}>{r.status}</Badge>}
               </td>
             </tr>
           ))}
