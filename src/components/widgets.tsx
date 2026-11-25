@@ -138,7 +138,7 @@ export function PriorityList({ items, showStudent, limit = 3 }: { items: Recomme
   );
 }
 
-export function RecommendationTable({ items, showStudent, onAction }: { items: Recommendation[]; showStudent?: boolean; onAction?: (msg: string) => void }) {
+export function RecommendationTable({ items, showStudent, onAction, isStudent }: { items: Recommendation[]; showStudent?: boolean; onAction?: (msg: string) => void; isStudent?: boolean }) {
   const qc = useQueryClient();
   const fb = useMutation({
     mutationFn: ({ id, status, useful }: { id: string; status?: string; useful?: boolean }) =>
@@ -175,14 +175,24 @@ export function RecommendationTable({ items, showStudent, onAction }: { items: R
                 </span>
               </td>
               <td className="!align-middle text-right">
-                {r.status === "nueva" ? (
+                {r.type === "ruta" && r.enrolled ? (
+                  <Badge tone="teal">inscrito</Badge>
+                ) : isStudent && r.type === "ruta" && r.status === "aceptada" ? (
+                  <span className="inline-flex flex-col items-end gap-1">
+                    <button className="btn btn-primary px-2.5 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, status: "aceptada" })}><CheckCircle2 size={13} /> Inscribirme</button>
+                    <span className="text-[11px] text-muted">recomendado por tu docente</span>
+                  </span>
+                ) : r.status === "nueva" ? (
                   <span className="inline-flex flex-nowrap justify-end gap-1.5 whitespace-nowrap">
-                    <button className="btn btn-primary px-2.5 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, status: "aceptada" })}><CheckCircle2 size={13} /> Aceptar</button>
+                    <button className="btn btn-primary px-2.5 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, status: "aceptada" })}
+                      title={r.type === "ruta" && !isStudent ? "Envía la recomendación al estudiante; solo él decide inscribirse" : undefined}>
+                      <CheckCircle2 size={13} /> {r.type === "ruta" ? (isStudent ? "Inscribirme" : "Recomendar al estudiante") : "Aceptar"}
+                    </button>
                     <button className="btn btn-ghost px-2.5 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, status: "descartada" })}><X size={13} /> Descartar</button>
                     <button className="btn btn-ghost px-2 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, useful: true })} aria-label="Marcar como útil" title="Útil"><ThumbsUp size={13} /></button>
                     <button className="btn btn-ghost px-2 py-1.5 text-xs" disabled={fb.isPending} onClick={() => fb.mutate({ id: r.id, useful: false })} aria-label="Marcar como no útil" title="No útil"><ThumbsDown size={13} /></button>
                   </span>
-                ) : <Badge tone={r.status === "descartada" || r.status === "expirada" ? "muted" : "teal"}>{r.status}</Badge>}
+                ) : <Badge tone={r.status === "descartada" || r.status === "expirada" ? "muted" : "teal"}>{r.type === "ruta" && r.status === "aceptada" ? "recomendada al estudiante" : r.status}</Badge>}
               </td>
             </tr>
           ))}

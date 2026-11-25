@@ -162,7 +162,7 @@ export function Recommendations() {
             ))}
           </div>
         </div>
-        <QueryState q={q} skeleton="h-64">{() => <RecommendationTable items={shown} showStudent={me?.role !== "estudiante"} onAction={(m) => { setNotice(m); metrics.refetch(); }} />}</QueryState>
+        <QueryState q={q} skeleton="h-64">{() => <RecommendationTable items={shown} showStudent={me?.role !== "estudiante"} isStudent={me?.role === "estudiante"} onAction={(m) => { setNotice(m); metrics.refetch(); }} />}</QueryState>
       </section>
     </div>
   );

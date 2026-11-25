@@ -98,6 +98,7 @@ export interface Recommendation {
   student: { id: string; full_name: string };
   course: { id: string; title: string } | null;
   skill: { id: string; name: string } | null;
+  enrolled?: boolean | null;
 }
 
 export interface RealtimeEvent<P = Record<string, unknown>> {
