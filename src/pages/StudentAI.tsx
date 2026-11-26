@@ -42,7 +42,9 @@ export function StudentAI({ studentId, courseTitles }: { studentId: string; cour
   const list = preds.data?.predictions ?? [];
   const current = list.find((p) => p.course_id === courseId) ?? list[0];
 
-  useEffect(() => setCourseId(null), [studentId]);
+  useEffect(() => {
+    setCourseId(null);
+  }, [studentId]);
   useEffect(() => {
     if (!current) return;
     setAnimating(true);

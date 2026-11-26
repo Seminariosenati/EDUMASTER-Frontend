@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  Award, BarChart3, Bell, BookOpen, BrainCircuit, ClipboardCheck, ClipboardList, GraduationCap, LayoutDashboard, LogOut, Map, Menu,
+  Award, BarChart3, Bell, BookOpen, Bot, BrainCircuit, ClipboardCheck, ClipboardList, MessageSquare, MessagesSquare, GraduationCap, LayoutDashboard, LogOut, Map, Menu,
   PanelLeftClose, PanelLeftOpen, ScrollText, Search, Settings, Sparkles, X,
 } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -18,6 +18,7 @@ interface NavItem {
   label: string;
   icon: ReactNode;
   roles?: Role[];
+  badgeKey?: "messages";
 }
 
 const NAV: NavItem[] = [
@@ -25,6 +26,9 @@ const NAV: NavItem[] = [
   { to: "/rutas", label: "Planes de aprendizaje", icon: <Map size={20} /> },
   { to: "/cursos", label: "Cursos", icon: <BookOpen size={20} /> },
   { to: "/evaluaciones", label: "Evaluaciones", icon: <ClipboardCheck size={20} />, roles: [...STAFF, "docente", "estudiante"] },
+  { to: "/tutor", label: "IA Tutor", icon: <Bot size={20} />, roles: [...STAFF, "docente", "estudiante"] },
+  { to: "/comunidad", label: "Comunidad", icon: <MessagesSquare size={20} />, roles: [...STAFF, "docente", "estudiante", "auditor"] },
+  { to: "/mensajes", label: "Mensajes", icon: <MessageSquare size={20} />, badgeKey: "messages" },
   { to: "/analisis", label: "Análisis", icon: <BarChart3 size={20} />, roles: [...STAFF, "docente", "auditor"] },
   { to: "/ia", label: "IA · Red neuronal", icon: <BrainCircuit size={20} /> },
   { to: "/recomendaciones", label: "Recomendaciones", icon: <Sparkles size={20} /> },
@@ -54,20 +58,23 @@ function readExpanded() {
   }
 }
 
-function RailLink({ item, onClick, expanded }: { item: NavItem; onClick: () => void; expanded: boolean }) {
+function RailLink({ item, onClick, expanded, badge = 0 }: { item: NavItem; onClick: () => void; expanded: boolean; badge?: number }) {
   return (
     <NavLink
       to={item.to}
       end={item.to === "/"}
       onClick={onClick}
       title={item.label}
-      aria-label={item.label}
+      aria-label={badge ? `${item.label}, ${badge} sin leer` : item.label}
       className={({ isActive }) =>
-        `flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition ${expanded ? "lg:w-full" : "lg:w-11 lg:justify-center lg:px-0"} ${isActive ? "bg-blue text-white shadow-[0_0_18px_-4px_var(--primary)]" : "text-muted hover:bg-ink/5 hover:text-ink"}`
+        `relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition ${expanded ? "lg:w-full" : "lg:w-11 lg:justify-center lg:px-0"} ${isActive ? "bg-blue text-white shadow-[0_0_18px_-4px_var(--primary)]" : "text-muted hover:bg-ink/5 hover:text-ink"}`
       }
     >
       {item.icon}
       <span className={expanded ? "truncate" : "lg:hidden"}>{item.label}</span>
+      {badge > 0 && (
+        <span className={`rounded-full bg-danger px-1.5 text-[10px] font-bold leading-4 text-white ${expanded ? "ml-auto" : "lg:absolute lg:right-0.5 lg:top-0.5 ml-auto lg:ml-0"}`}>{badge > 99 ? "99+" : badge}</span>
+      )}
     </NavLink>
   );
 }
@@ -87,6 +94,7 @@ function Shell() {
     });
   };
   const [q, setQ] = useState("");
+  const unread = useQuery({ queryKey: ["messages", "unread"], queryFn: () => api<{ unread: number }>("/messages/unread"), refetchInterval: 60_000 });
   const navigate = useNavigate();
   const items = NAV.filter((n) => !n.roles || (me && n.roles.includes(me.role)));
   const showSettings = me && SETTINGS.roles!.includes(me.role);
@@ -110,7 +118,7 @@ function Shell() {
           <button className="lg:hidden" onClick={() => setOpen(false)} aria-label="Cerrar menú"><X size={18} /></button>
         </div>
         <nav aria-label="Principal" className="flex flex-col gap-1.5">
-          {items.map((n) => <RailLink key={n.to} item={n} expanded={expanded} onClick={() => setOpen(false)} />)}
+          {items.map((n) => <RailLink key={n.to} item={n} expanded={expanded} onClick={() => setOpen(false)} badge={n.badgeKey === "messages" ? unread.data?.unread ?? 0 : 0} />)}
         </nav>
         <div className={`mt-auto flex flex-col gap-1.5 ${expanded ? "" : "lg:items-center"}`}>
           {showSettings && (

@@ -11,6 +11,9 @@ import type { Role } from "./lib/types";
 import { Courses, CourseDetail, LearningPaths, Students } from "./pages/Academic";
 import { Dashboard } from "./pages/Dashboard";
 import { EvaluationDetail, Evaluations } from "./pages/Evaluations";
+import { Community, CommunityPost } from "./pages/Community";
+import { Messages } from "./pages/Messages";
+import { Tutor } from "./pages/Tutor";
 import { Audit, Certificates, UsersPage, Verify } from "./pages/Governance";
 import { Analytics, Recommendations } from "./pages/Insights";
 import { Login } from "./pages/Login";
@@ -46,6 +49,11 @@ createRoot(document.getElementById("root")!).render(
               <Route path="cursos" element={<Courses />} />
               <Route path="cursos/:id" element={<CourseDetail />} />
               <Route path="evaluaciones" element={<Evaluations />} />
+              <Route path="tutor" element={<Protected roles={[...STAFF, "docente", "estudiante"]}><Tutor /></Protected>} />
+              <Route path="comunidad" element={<Community />} />
+              <Route path="comunidad/:postId" element={<CommunityPost />} />
+              <Route path="mensajes" element={<Messages />} />
+              <Route path="mensajes/:id" element={<Messages />} />
               <Route path="evaluaciones/:id" element={<EvaluationDetail />} />
               <Route path="analisis" element={<Protected roles={[...STAFF, "docente", "auditor"]}><Analytics /></Protected>} />
               <Route path="ia" element={<NeuralLab />} />

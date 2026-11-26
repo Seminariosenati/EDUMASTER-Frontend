@@ -28,6 +28,9 @@ const EVENT_TYPES = [
   "model.deployed",
   "system.resources",
   "model.inference.live",
+  "community.updated",
+  "message.created",
+  "message.read",
 ];
 
 const INVALIDATIONS: Record<string, string[][]> = {
@@ -39,6 +42,9 @@ const INVALIDATIONS: Record<string, string[][]> = {
   "model.training.completed": [["models"], ["runs"], ["activity"]],
   "model.training.failed": [["runs"]],
   "model.deployed": [["models"], ["architecture"], ["summary"], ["activity"]],
+  "community.updated": [["community"], ["notifications"]],
+  "message.created": [["messages"]],
+  "message.read": [["messages"]],
 };
 
 export function RealtimeProvider({ children, enabled }: { children: ReactNode; enabled: boolean }) {

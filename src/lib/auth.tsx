@@ -30,7 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     qc.clear();
   }, [qc]);
 
-  useEffect(() => setUnauthorizedHandler(logout), [logout]);
+  useEffect(() => {
+    setUnauthorizedHandler(logout);
+  }, [logout]);
 
   const login = useCallback(
     async (email: string, password: string) => {

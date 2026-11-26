@@ -71,7 +71,9 @@ export function Courses() {
   const [params] = useSearchParams();
   const [search, setSearch] = useState(params.get("q") ?? "");
   const [level, setLevel] = useState("");
-  useEffect(() => setSearch(params.get("q") ?? ""), [params]);
+  useEffect(() => {
+    setSearch(params.get("q") ?? "");
+  }, [params]);
   const [mine, setMine] = useState(me?.role === "estudiante");
   const [open, setOpen] = useState(false);
   const q = useQuery({
