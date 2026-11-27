@@ -8,7 +8,8 @@ import "./index.css";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { ThemeProvider } from "./lib/theme";
 import type { Role } from "./lib/types";
-import { Courses, CourseDetail, LearningPaths, Students } from "./pages/Academic";
+import { Courses, CourseDetail, Students } from "./pages/Academic";
+import { LearningPaths, PathDetail } from "./pages/Paths";
 import { Dashboard } from "./pages/Dashboard";
 import { EvaluationDetail, Evaluations } from "./pages/Evaluations";
 import { Community, CommunityPost } from "./pages/Community";
@@ -46,6 +47,7 @@ createRoot(document.getElementById("root")!).render(
             <Route element={<Protected><AppShell /></Protected>}>
               <Route index element={<Dashboard />} />
               <Route path="rutas" element={<LearningPaths />} />
+              <Route path="rutas/:id" element={<PathDetail />} />
               <Route path="cursos" element={<Courses />} />
               <Route path="cursos/:id" element={<CourseDetail />} />
               <Route path="evaluaciones" element={<Evaluations />} />

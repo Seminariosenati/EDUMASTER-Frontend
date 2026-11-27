@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, CheckCircle2, Circle, Map, PlayCircle, Plus, Users } from "lucide-react";
+import { BookOpen, CheckCircle2, PlayCircle, Plus, Users } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Badge, ErrorState, Field, Modal, Note, PageHeader, Panel, QueryState } from "../components/ui";
@@ -25,46 +25,6 @@ interface Course {
 }
 
 const LEVEL_TONE: Record<string, "teal" | "blue" | "violet"> = { basico: "teal", intermedio: "blue", avanzado: "violet" };
-
-export function LearningPaths() {
-  const q = useQuery({
-    queryKey: ["paths"],
-    queryFn: () => api<{ id: string; title: string; objective: string; status: string; steps: { position: number; course_id: string; code: string; title: string; level: string; my_status?: string; my_progress?: number }[] }[]>("/learning-paths"),
-  });
-  return (
-    <div>
-      <PageHeader title="Planes de aprendizaje" subtitle="Rutas con secuencia de cursos y criterios de logro" />
-      <QueryState q={q} empty={(d) => !d.length}>
-        {(paths) => (
-          <div className="space-y-4">
-            {paths.map((p) => (
-              <Panel key={p.id} icon={<Map size={16} />} title={p.title} subtitle={p.objective} actions={<Badge tone="teal">{p.status}</Badge>}>
-                <ol className="flex flex-col gap-3 md:flex-row md:items-stretch">
-                  {p.steps.map((s, i) => (
-                    <li key={s.course_id} className="flex flex-1 items-center gap-2">
-                      <Link to={`/cursos/${s.course_id}`} className="panel flex-1 p-3 hover:border-cyan">
-                        <p className="flex items-center gap-1.5 text-xs text-muted">
-                          {s.my_status === "completado" ? <CheckCircle2 size={14} className="text-teal" /> : s.my_status && s.my_status !== "pendiente" ? <PlayCircle size={14} className="text-cyan" /> : <Circle size={14} />}
-                          Paso {s.position} · {s.code}
-                        </p>
-                        <p className="mt-1 text-sm font-semibold">{s.title}</p>
-                        <Badge tone={LEVEL_TONE[s.level]}>{s.level}</Badge>
-                        {s.my_progress !== undefined && (
-                          <div className="mt-2 h-1.5 rounded-full bg-ink/5"><div className="h-full rounded-full bg-cyan" style={{ width: `${s.my_progress * 100}%` }} /></div>
-                        )}
-                      </Link>
-                      {i < p.steps.length - 1 && <span className="hidden text-cyan md:block">→</span>}
-                    </li>
-                  ))}
-                </ol>
-              </Panel>
-            ))}
-          </div>
-        )}
-      </QueryState>
-    </div>
-  );
-}
 
 export function Courses() {
   const { can, me } = useAuth();
