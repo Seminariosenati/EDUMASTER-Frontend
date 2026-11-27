@@ -70,7 +70,7 @@ export function Dashboard() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Centro de mando</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Centro de mando estudiantil</h1>
           <p className="mt-1 text-sm text-muted">
             Últimos {days} días{courseName ? ` · ${courseName}` : ""}{cohort ? ` · cohorte ${cohort}` : ""} · actualizado {summary.data ? timeAgo(summary.data.generated_at) : "…"}
             {summary.data?.is_demo && <> · <b className="font-semibold text-ink">datos DEMO sintéticos</b></>}
